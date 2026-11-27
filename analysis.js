@@ -48,7 +48,18 @@
     let solar=day.groups?.Solar;let solarIndex=Array.isArray(solar)&&solar.length===96&&solar.every(Number.isFinite)?solar.indexOf(Math.max(...solar)):-1;
     return {average:mean(v),peak:v[peak],peakIndex:peak,low:v[low],lowIndex:low,largestChange:delta,changeIndex:deltaIndex,solarPeak:solarIndex>=0?solar[solarIndex]:null,solarIndex};
   }
+  function summarizePeriod(dates,days){
+    const labels=intervalLabels(dates),total=intervalSeries(dates,days,'total',['total']).total,solar=intervalSeries(dates,days,'group',['Solar']).Solar;
+    let count=0,sum=0,low=null,lowIndex=-1,solarPeak=null,solarIndex=-1,largestChange=null,changeIndex=-1;
+    for(let i=0;i<total.length;i++){
+      const value=total[i];
+      if(Number.isFinite(value)){count++;sum+=value;if(low===null||value<low){low=value;lowIndex=i}}
+      if(i>0&&Number.isFinite(value)&&Number.isFinite(total[i-1])){const change=value-total[i-1];if(largestChange===null||Math.abs(change)>Math.abs(largestChange)){largestChange=change;changeIndex=i}}
+      if(Number.isFinite(solar[i])&&(solarPeak===null||solar[i]>solarPeak)){solarPeak=solar[i];solarIndex=i}
+    }
+    return {count,average:count?sum/count:null,low,lowLabel:labels[lowIndex]||null,solarPeak,solarLabel:labels[solarIndex]||null,largestChange,changeLabel:labels[changeIndex]||null,solarCount:solar.filter(Number.isFinite).length};
+  }
   const sourceColors={'Major hydro':'#0876bd','Coal':'#c59a00','Oil (CEB)':'#c93535','Oil (IPP)':'#9247a9','Wind':'#218a4b','Solar':'#ec7a1b','Biomass':'#515966','Mini hydro':'#00a2b4','Storage (net)':'#ad5785','Reported net total':'#183f36'};
   function sourceColor(name){return sourceColors[name]||'#4b6477'}
-  const api={periodDates,yearCoverage,dailyValue,periodSeries,intervalLabels,intervalSeries,zoomRange,selectionRange,dragRange,summarize,sourceColor};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.SLGIAnalysis=api;
+  const api={periodDates,yearCoverage,dailyValue,periodSeries,intervalLabels,intervalSeries,zoomRange,selectionRange,dragRange,summarize,summarizePeriod,sourceColor};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.SLGIAnalysis=api;
 })(typeof globalThis==='undefined'?this:globalThis);

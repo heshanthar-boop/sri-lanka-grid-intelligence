@@ -25,3 +25,7 @@
 .history-summary{background:#e8f3e5;border:1px solid #d5e6d4;border-radius:8px;padding:10px 12px;color:#315c49!important;font-weight:700}.calendar-title{display:flex;flex-direction:column;align-items:center;gap:5px}.calendar-title label{font-size:9px;color:#688174;font-weight:700;text-transform:uppercase;letter-spacing:.08em}.calendar-title input{border:1px solid #d6e4d8;border-radius:6px;padding:6px;color:#254b3e;background:white;font:inherit;font-size:12px}
 
 .statusbar .date-control #archive-month{min-width:155px}.date-control label{white-space:nowrap}@media(max-width:750px){.date-control{justify-content:flex-start}.date-tip{text-align:left}.statusbar .date-control #archive-month{flex:1;min-width:150px}}
+
+.touch-help{display:none;font-size:12px;color:#6c847a}.touch-help span{color:#81a951;font-size:18px;margin-right:5px}
+@media(pointer:coarse){.chart-help{display:none}.touch-help{display:block}.zoom-bar button,.date-nav button{min-height:44px;min-width:44px}.calendar-grid button{min-height:44px}select,.calendar-title input{font-size:16px}}
+@media(max-width:400px){.check-grid{grid-template-columns:minmax(0,1fr)}.check-item{min-width:0;align-items:flex-start}.check-item span{min-width:0;overflow-wrap:anywhere}.check-item input{margin-top:2px}.metrics strong{font-size:clamp(21px,6vw,26px)}.insights-grid{grid-template-columns:minmax(0,1fr)}.period-switch button{padding-left:8px;padding-right:8px}.calendar-widget,.calendar-intro{padding:18px}.chart-card,.panel{padding:16px}}
