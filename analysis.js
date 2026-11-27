@@ -12,7 +12,23 @@
     const result=[];for(let t=start;t<end;t+=step)result.push(new Date(t).toISOString().slice(0,10));return result;
   }
   function mean(values){return values.length ? values.reduce((a,b)=>a+b,0)/values.length : null}
-  function dailyValue(day,selection,name){if(!day)return null;let v=selection==='total'?day.total:selection==='groups'?day.groups?.[name]:day.plants?.[name];return Array.isArray(v)&&v.length===96&&v.every(Number.isFinite)?mean(v):null}
+  function dailyValue(day,selection,name){if(!day)return null;let v=selection==='total'?day.total:(selection==='groups'||selection==='group')?day.groups?.[name]:day.plants?.[name];return Array.isArray(v)&&v.length===96&&v.every(Number.isFinite)?mean(v):null}
   function periodSeries(dates,days,selection,names){const result={};for(const name of names)result[name]=dates.map(d=>dailyValue(days[d],selection,name));return result}
-  const api={periodDates,dailyValue,periodSeries};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.SLGIAnalysis=api;
+  function zoomRange(total,start,length,action,anchor){
+    const min=Math.min(total,4);start=Math.max(0,Math.min(start,total-1));length=Math.max(min,Math.min(length,total));anchor=Math.max(start,Math.min(anchor,start+length-1));
+    if(action==='reset')return {start:0,length:total};
+    if(action==='left'||action==='right'){let n=start+(action==='left'?-1:1)*Math.max(1,Math.floor(length/2));return {start:Math.max(0,Math.min(total-length,n)),length};}
+    let newLength=action==='in'?Math.max(min,Math.ceil(length/2)):Math.min(total,length*2);
+    let n=Math.round(anchor-(anchor-start)/(Math.max(1,length-1))*(newLength-1));return {start:Math.max(0,Math.min(total-newLength,n)),length:newLength};
+  }
+  function summarize(day){
+    if(!day||!Array.isArray(day.total)||day.total.length!==96||!day.total.every(Number.isFinite))return null;
+    const v=day.total;let peak=v.indexOf(Math.max(...v)),low=v.indexOf(Math.min(...v)),delta=0,deltaIndex=1;
+    for(let i=1;i<v.length;i++){let diff=v[i]-v[i-1];if(Math.abs(diff)>Math.abs(delta)){delta=diff;deltaIndex=i}}
+    let solar=day.groups?.Solar;let solarIndex=Array.isArray(solar)&&solar.length===96&&solar.every(Number.isFinite)?solar.indexOf(Math.max(...solar)):-1;
+    return {average:mean(v),peak:v[peak],peakIndex:peak,low:v[low],lowIndex:low,largestChange:delta,changeIndex:deltaIndex,solarPeak:solarIndex>=0?solar[solarIndex]:null,solarIndex};
+  }
+  const sourceColors={'Major hydro':'#0876bd','Coal':'#c59a00','Oil (CEB)':'#c93535','Oil (IPP)':'#9247a9','Wind':'#218a4b','Solar':'#ec7a1b','Biomass':'#515966','Mini hydro':'#00a2b4','Storage (net)':'#ad5785','Reported net total':'#183f36'};
+  function sourceColor(name){return sourceColors[name]||'#4b6477'}
+  const api={periodDates,dailyValue,periodSeries,zoomRange,summarize,sourceColor};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.SLGIAnalysis=api;
 })(typeof globalThis==='undefined'?this:globalThis);

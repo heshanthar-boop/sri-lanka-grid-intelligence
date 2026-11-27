@@ -1,29 +1,120 @@
 {
-  "checked_utc": "2026-11-27T14:57:33.200793+00:00",
+  "checked_utc": "2026-11-27T15:24:44.480359+00:00",
   "accepted": [
     {
-      "date": "2026-11-22",
+      "date": "2026-11-01",
       "observations": 3744,
       "plants": 39,
-      "raw": "2026-11-22-45d0108103f7a0aeccd0afd4ed0f2b0ed100d1bf048a064d1041dee39442e013.json.gz"
+      "raw": "2026-11-01-3958e89681827d43fe0b8083b6149d68f94811ecaf2b3452702540a3268c90d2.json.gz"
     },
     {
-      "date": "2026-11-21",
+      "date": "2026-11-02",
       "observations": 3744,
       "plants": 39,
-      "raw": "2026-11-21-d13ae09747ab4bb9317beab76729b19555ba89801ccd1f509bfe69805d38f7c4.json.gz"
+      "raw": "2026-11-02-65ed443ccbd4383fa8be0042265ea3080fb8a8f591ca2dd02efae4673feb05fa.json.gz"
     },
     {
-      "date": "2026-11-20",
+      "date": "2026-11-03",
       "observations": 3744,
       "plants": 39,
-      "raw": "2026-11-20-8d39c11d77a3e91b9ce82d74e137108d2aeedf83c980bbffa4693b17ea0fe0a7.json.gz"
+      "raw": "2026-11-03-be076c948a00604a7f7dfa54b456b5d275857591a455fd943826eca922a7e262.json.gz"
+    },
+    {
+      "date": "2026-11-04",
+      "observations": 3744,
+      "plants": 39,
+      "raw": "2026-11-04-c23e1dc9fdbdd8163f9891b607ab34f1c21fb55a5f096de0334002a0625e61d7.json.gz"
+    },
+    {
+      "date": "2026-11-05",
+      "observations": 3744,
+      "plants": 39,
+      "raw": "2026-11-05-54f3e79cbc7530dc480fb63f7e443d083a66bbb7b9e51fef13d25e60798b57f5.json.gz"
+    },
+    {
+      "date": "2026-11-06",
+      "observations": 3744,
+      "plants": 39,
+      "raw": "2026-11-06-a41fbc74658669bac897198311cb55af906aa691431e2a99ed4cb062afa62188.json.gz"
+    },
+    {
+      "date": "2026-11-07",
+      "observations": 3744,
+      "plants": 39,
+      "raw": "2026-11-07-609b0f0c0b54546067150e25f2cd909f23a4e9330269d216398af2de52c9c464.json.gz"
+    },
+    {
+      "date": "2026-11-08",
+      "observations": 3744,
+      "plants": 39,
+      "raw": "2026-11-08-6b1941b608b98b8ddcac7095c08027772b814228a3b957f6a18620d523dd5055.json.gz"
+    },
+    {
+      "date": "2026-11-09",
+      "observations": 3744,
+      "plants": 39,
+      "raw": "2026-11-09-c5e1c4a77aa69c24176165f4fdbcf85bb9cfbb56556eb218b7ee8a5a700ec3dd.json.gz"
+    },
+    {
+      "date": "2026-11-10",
+      "observations": 3744,
+      "plants": 39,
+      "raw": "2026-11-10-5c0e34c048e06a012623410e20c15a0aacc19c1a4503dd02c7238be329cb11bd.json.gz"
+    },
+    {
+      "date": "2026-11-11",
+      "observations": 3744,
+      "plants": 39,
+      "raw": "2026-11-11-86570ed8f477b61fc799a6bb97f9918f3d69ed6ad3ecfc94f9dddab41ac89ae5.json.gz"
+    },
+    {
+      "date": "2026-11-12",
+      "observations": 3744,
+      "plants": 39,
+      "raw": "2026-11-12-6db4244de3d0e878b2fc9c4a4845557530d36b1ee39b6d4e105be7cf3da58612.json.gz"
+    },
+    {
+      "date": "2026-11-13",
+      "observations": 3744,
+      "plants": 39,
+      "raw": "2026-11-13-179506298562fae1d6a47cc59f50068913b9fcfe5ec2295a25b7243d659ca73c.json.gz"
+    },
+    {
+      "date": "2026-11-14",
+      "observations": 3744,
+      "plants": 39,
+      "raw": "2026-11-14-26b6b57ab42d9533f5c95b581488ae8f7146dbb841b52e04d8eda5cf9320255e.json.gz"
+    },
+    {
+      "date": "2026-11-15",
+      "observations": 3744,
+      "plants": 39,
+      "raw": "2026-11-15-cfde86fe252ec51974b4a7bb435ed8cc632ec40dfa8ea19c903fbd7abef65e0d.json.gz"
+    },
+    {
+      "date": "2026-11-16",
+      "observations": 3744,
+      "plants": 39,
+      "raw": "2026-11-16-e6479a8de7cf2536f77ec924809d2d649f5a9983b5ab9173aa8a04356d8a4ecd.json.gz"
+    },
+    {
+      "date": "2026-11-17",
+      "observations": 3744,
+      "plants": 39,
+      "raw": "2026-11-17-cf0e7fb04a75d86f99b3847a91525dabaf3334bb8287eac310111adf485ee58d.json.gz"
+    },
+    {
+      "date": "2026-11-18",
+      "observations": 3744,
+      "plants": 39,
+      "raw": "2026-11-18-9ffe62f4bbe68e1db8d7121fab8b517820ca219cc596615be05c9904bfe6a174.json.gz"
+    },
+    {
+      "date": "2026-11-19",
+      "observations": 3744,
+      "plants": 39,
+      "raw": "2026-11-19-059fc666791bb44b475815eea2825e7be6b06373cda592f6039119a800b7a9ac.json.gz"
     }
   ],
-  "errors": [
-    {
-      "date": "2026-11-26",
-      "reason": "Invalid dispatch value"
-    }
-  ]
+  "errors": []
 }

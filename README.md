@@ -8,6 +8,12 @@ After the GitHub Pages deployment succeeds, open its HTTPS address in Android Ch
 
 Use the Day / Week / Month buttons above the chart. Week means Monday–Sunday; Month means the calendar month containing the selected date. In week and month views, each point is the arithmetic mean of that day’s 96 reported MW readings. Missing days and unavailable series are gaps, never zero. The availability count is shown above the chart. Choose a source or plant, then hover, tap, or focus the chart and use left/right arrow keys to inspect values. The summary cards and investigation panels continue to describe the selected day. Different days may have different source coverage.
 
+The Sri Lanka calendar marks published public and bank holidays from the original government gazettes for 2025 and 2026. Holidays can change; later gazette amendments and special declarations are not automatically included. Other years are clearly marked as not loaded. The calendar starts on Monday, like the government desk calendar; Saturdays and Sundays are shown as bank weekends for the loaded years. Dots show days with accepted data. Choose Day, Week or Month in the calendar, then select a date. If a day has no data, the app says so; for a week or month, it uses an available date in that same period when possible. Previous/next arrows skip unavailable archive days.
+
+Use + and - to zoom the chart, the left/right arrows to move within a zoomed view, and Reset to see the full period. “Save chart as PDF” downloads the visible zoomed chart. “Export data to Excel” downloads an .xlsx workbook containing all points in the selected period and selected series (regardless of zoom), plus a source and methodology sheet; missing values stay blank. PDF uses simple Latin font rendering, so non-Latin imported series labels may appear as question marks.
+
+Colours follow the broad conventions shown in [PUCSL generation reports](https://www.pucsl.gov.lk/wp-content/uploads/2024/07/Generation-Report-16.-07.2024-second-Copy-Copy.pdf): blue major hydro, yellow coal, red CEB oil, purple IPP oil, green wind, cyan mini hydro and orange solar. Storage uses a separate colour. See the chart legend for names.
+
 The included dates are genuine verified source records, not demonstration data. Select a date and then choose source groups, the net total, or a reported plant/aggregate. A source series can be an aggregate (for example, solar, wind or mini hydro), even when shown in the plant selector. The status line says **not live**.
 
 ## Deploy on GitHub Pages
@@ -30,7 +36,7 @@ python -m http.server 8000
 # Visit http://localhost:8000/
 python -m unittest discover -s tests -v
 node --check app.js
-node --test tests/test_charts.js
+node --test tests/test_charts.js tests/test_exports.js
 ```
 
 Do not open `index.html` directly with `file://`: browsers restrict data loading and service workers. No external chart library, API credential or build process is required for the app.
