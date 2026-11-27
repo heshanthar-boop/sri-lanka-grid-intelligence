@@ -23,6 +23,13 @@
     let newLength=action==='in'?Math.max(min,Math.ceil(length/2)):Math.min(total,length*2);
     let n=Math.round(anchor-(anchor-start)/(Math.max(1,length-1))*(newLength-1));return {start:Math.max(0,Math.min(total-newLength,n)),length:newLength};
   }
+  function selectionRange(total,a,b){
+    if(total<=0)return {start:0,length:0};
+    const first=Math.max(0,Math.min(total-1,Math.min(a,b))),last=Math.max(0,Math.min(total-1,Math.max(a,b)));
+    const length=Math.min(total,Math.max(4,last-first+1));
+    const start=Math.max(0,Math.min(total-length,Math.floor((first+last-length+1)/2)));
+    return {start,length};
+  }
   function dragRange(total,start,length,deltaPixels,plotPixels){
     if(total<=0||length<=0)return 0;
     const shift=Math.round(deltaPixels/Math.max(1,plotPixels)*Math.max(0,length-1));
@@ -37,5 +44,5 @@
   }
   const sourceColors={'Major hydro':'#0876bd','Coal':'#c59a00','Oil (CEB)':'#c93535','Oil (IPP)':'#9247a9','Wind':'#218a4b','Solar':'#ec7a1b','Biomass':'#515966','Mini hydro':'#00a2b4','Storage (net)':'#ad5785','Reported net total':'#183f36'};
   function sourceColor(name){return sourceColors[name]||'#4b6477'}
-  const api={periodDates,dailyValue,periodSeries,intervalLabels,intervalSeries,zoomRange,dragRange,summarize,sourceColor};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.SLGIAnalysis=api;
+  const api={periodDates,dailyValue,periodSeries,intervalLabels,intervalSeries,zoomRange,selectionRange,dragRange,summarize,sourceColor};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.SLGIAnalysis=api;
 })(typeof globalThis==='undefined'?this:globalThis);

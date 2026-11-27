@@ -51,6 +51,7 @@ function lineChart(series,labels,heading,description){
   const labelFor=i=>period==='day'?(i===95?'24:00':timestamp(i)):(n>96?labels[i].slice(5,10):labels[i].slice(5,16));
   ticks.forEach(i=>add('text',{x:x(i),y:H-11,'text-anchor':i===first?'start':i===last?'end':'middle',fill:'#6a8276','font-size':W<600?10:12},labelFor(i)));
   names.forEach(name=>{let segment=[];const flush=()=>{if(segment.length>1)add('polyline',{points:segment.join(' '),fill:'none',stroke:color(name),'stroke-width':2.6,'stroke-linecap':'round','stroke-linejoin':'round'});segment=[]};for(let i=first;i<=last;i++){let v=series[name][i];if(!Number.isFinite(v)){flush();continue}segment.push(`${x(i)},${y(v)}`);if(n<=96)add('circle',{cx:x(i),cy:y(v),r:3,fill:color(name)})}flush()});
+  const band=add('rect',{x:L,y:T,width:0,height:H-T-B,fill:'#2a8e6c','fill-opacity':'0.15',stroke:'#2a8e6c','stroke-width':1,opacity:0});
   const guide=add('line',{x1:L,y1:T,x2:L,y2:H-B,stroke:'#173f38','stroke-width':1,'stroke-dasharray':'4 4',opacity:0});
   const dots=names.map(name=>add('circle',{cx:0,cy:0,r:4.5,fill:color(name),stroke:'white','stroke-width':2,opacity:0}));
   node.appendChild(svg);$('download-csv').disabled=false;$('export-chart').disabled=false;$('legend').replaceChildren(...names.map(name=>{let item=el('span',name);let dot=document.createElement('i');dot.style.background=color(name);item.prepend(dot);return item}));
@@ -69,11 +70,16 @@ function lineChart(series,labels,heading,description){
       const delta=e.clientX-dragState.originX;
       if(Math.abs(delta)<4&&!dragState.moved)return;
       dragState.moved=true;node.classList.add('dragging');
-      const start=SLGIAnalysis.dragRange(zoom.total,dragState.start,dragState.length,delta,dragState.plotWidth);
-      if(start!==zoom.start){
-        const fraction=Math.max(0,Math.min(1,(e.clientX-dragState.plotLeft)/dragState.plotWidth));
-        zoom={start,length:dragState.length,total:zoom.total};activePoint=start+Math.round(fraction*(zoom.length-1));
-        lineChart(chartModel.series,chartModel.labels,chartModel.heading,chartModel.description);
+      const fraction=Math.max(0,Math.min(1,(e.clientX-dragState.plotLeft)/dragState.plotWidth));
+      if(dragState.mode==='select'){
+        dragState.end=dragState.start+Math.round(fraction*(dragState.length-1));
+        const a=x(dragState.anchor),b=x(dragState.end);band.setAttribute('x',Math.min(a,b));band.setAttribute('width',Math.abs(b-a));band.setAttribute('opacity','1');
+      }else{
+        const start=SLGIAnalysis.dragRange(zoom.total,dragState.start,dragState.length,delta,dragState.plotWidth);
+        if(start!==zoom.start){
+          zoom={start,length:dragState.length,total:zoom.total};activePoint=start+Math.round(fraction*(zoom.length-1));
+          lineChart(chartModel.series,chartModel.labels,chartModel.heading,chartModel.description);
+        }
       }
       return;
     }
@@ -81,13 +87,22 @@ function lineChart(series,labels,heading,description){
   };
   node.onpointerdown=e=>{
     pointer(e);node.focus({preventScroll:true});
-    if(e.pointerType==='mouse'&&e.button===0&&zoom.length<zoom.total){
+    if(e.pointerType==='mouse'&&e.button===0){
       let bounds=svg.getBoundingClientRect(),scale=bounds.width/W;
-      dragState={id:e.pointerId,originX:e.clientX,start:zoom.start,length:zoom.length,plotLeft:bounds.left+L*scale,plotWidth:(W-L-R)*scale,moved:false};
-      node.setPointerCapture(e.pointerId);e.preventDefault();
+      dragState={id:e.pointerId,mode:zoom.length===zoom.total?'select':'pan',originX:e.clientX,start:zoom.start,length:zoom.length,plotLeft:bounds.left+L*scale,plotWidth:(W-L-R)*scale,anchor:activePoint,end:activePoint,moved:false};
+      try{node.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault();
     }
   };
-  const finishDrag=e=>{if(dragState&&e.pointerId===dragState.id){dragState=null;node.classList.remove('dragging');if(node.hasPointerCapture(e.pointerId))node.releasePointerCapture(e.pointerId)}};
+  const finishDrag=e=>{
+    if(!dragState||e.pointerId!==dragState.id)return;
+    const selected=dragState;dragState=null;node.classList.remove('dragging');
+    if(node.hasPointerCapture(e.pointerId))node.releasePointerCapture(e.pointerId);
+    if(e.type==='pointerup'&&selected.mode==='select'&&selected.moved&&chartModel){
+      const range=SLGIAnalysis.selectionRange(zoom.total,selected.anchor,selected.end);
+      zoom={...range,total:zoom.total};activePoint=Math.floor(range.start+(range.length-1)/2);
+      lineChart(chartModel.series,chartModel.labels,chartModel.heading,chartModel.description);
+    }else if(band.isConnected)band.setAttribute('opacity','0');
+  };
   node.onpointerup=finishDrag;node.onpointercancel=finishDrag;node.onlostpointercapture=()=>{dragState=null;node.classList.remove('dragging')};
   node.onkeydown=e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();inspect(activePoint+(e.key==='ArrowRight'?1:-1))}else if(e.key==='Home'||e.key==='End'){e.preventDefault();inspect(e.key==='Home'?first:last)}};
   node.setAttribute('aria-label',`${heading}. ${description} Use left and right arrow keys to inspect values.`);inspect(activePoint);
@@ -95,6 +110,9 @@ function lineChart(series,labels,heading,description){
 function adjustZoom(action){if(!chartModel||!zoom)return;let v=SLGIAnalysis.zoomRange(zoom.total,zoom.start,zoom.length,action,activePoint);zoom={...v,total:zoom.total};lineChart(chartModel.series,chartModel.labels,chartModel.heading,chartModel.description)}
 [['zoom-in','in'],['zoom-out','out'],['zoom-reset','reset'],['pan-left','left'],['pan-right','right']].forEach(([id,action])=>$(id).addEventListener('click',()=>adjustZoom(action)));
 
+// If pointer capture is unavailable, continue a drag that leaves the chart.
+window.addEventListener('pointermove',event=>{let node=$('chart');if(dragState&&!node.contains(event.target)&&node.onpointermove)node.onpointermove(event)});
+window.addEventListener('pointerup',event=>{let node=$('chart');if(dragState&&!node.contains(event.target)&&node.onpointerup)node.onpointerup(event)});
 let wheelAccum=0,lastWheelZoom=0;
 $('chart').addEventListener('wheel',event=>{
   if(!chartModel||!zoom||event.ctrlKey||event.metaKey||!event.deltaY)return;
@@ -182,4 +200,4 @@ function csvRows(text){let rows=[],row=[],s='',q=false;for(let i=0;i<text.length
 function importCSV(text){let rows=csvRows(text.replace(/^\uFEFF/,''));let header=rows.shift().map(x=>x.trim().toLowerCase());let ix=['timestamp','source','category','mw'].map(k=>header.indexOf(k));if(ix.some(i=>i<0))throw Error('CSV must contain timestamp, source, category, mw headers.');let plants={},category={},allDates=[];for(let r of rows){let [t,name,g,v]=ix.map(i=>(r[i]??'').trim());if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::00)?(?:\+05:30)?$/.test(t)||!name||!g||v===''||!Number.isFinite(Number(v)))throw Error('Invalid row: use a local ISO timestamp, source, category and numeric MW.');let clean=t.replace(/\+05:30$/,'');let ms=Date.parse(clean+'Z');if(!Number.isFinite(ms)||new Date(ms).toISOString().slice(0,16)!==clean.slice(0,16)||ms%900000!==0)throw Error('Invalid quarter-hour timestamp.');if(category[name]&&category[name]!==g)throw Error('A source has more than one category.');category[name]=g;plants[name]??={};if(ms in plants[name])throw Error('Duplicate source and timestamp.');plants[name][ms]=Number(v);allDates.push(ms)}if(!allDates.length)throw Error('No observations.');let first=Math.min(...allDates),base=first-900000;if(new Date(base).toISOString().slice(11,16)!=='00:00')throw Error('First label must be 00:15 on the selected day.');let expected=Array.from({length:96},(_,i)=>base+(i+1)*900000),groups={};Object.keys(plants).forEach(name=>{if(Object.keys(plants[name]).length!==96||expected.some(t=>!(t in plants[name])))throw Error(`Source ${name} must have exactly 96 aligned observations.`);plants[name]=expected.map(t=>plants[name][t]);let g=category[name];groups[g]??=Array(96).fill(0);groups[g]=groups[g].map((v,i)=>v+plants[name][i])});return {date:new Date(base).toISOString().slice(0,10),sheet:'Local CSV',imported:true,groups,plants,plant_categories:category,total:Array.from({length:96},(_,i)=>Object.values(groups).reduce((s,a)=>s+a[i],0))}}
 $('csv').addEventListener('change',async e=>{try{let f=e.target.files[0];if(!f)return;if(f.size>10_000_000)throw Error('CSV exceeds 10 MB.');imported=importCSV(await f.text());let option=$('date').querySelector('option[value="local"]');if(!option){option=new Option('Imported CSV','local');$('date').append(option)}option.textContent=imported.date+' · local CSV';$('date').value='local';show(imported);$('import-status').textContent='Imported successfully. This data remains in this session.'}catch(err){$('import-status').textContent='Import failed: '+err.message}finally{e.target.value=''}});
 (async()=>{try{let r=await fetch('data/index.json');if(!r.ok)throw Error('Archive index unavailable');let data=await r.json();if(!data.dates.length)throw Error('No validated dates in archive');archiveDates=data.dates;data.dates.slice().reverse().forEach(d=>$('date').add(new Option(d,d)));$('date').dispatchEvent(new Event('change'))}catch(err){$('state').textContent='No archive available';$('status-detail').textContent=err.message}})();
-if('serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js?v=7').catch(()=>{});
