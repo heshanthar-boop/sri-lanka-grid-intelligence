@@ -52,9 +52,10 @@ def parse(date,records,meta,source,rawref,metaref):
     if not {'Major hydro','Coal','Oil (CEB)','Solar','Wind'}.issubset(groups):raise ValueError('Expected source types missing')
     return {'date':date,'source_url':source,'raw_file':rawref[0],'sha256':rawref[1],'metadata_file':metaref[0],'metadata_sha256':metaref[1], 'sheet':'PUCSL API', 'time_basis':'UTC API timestamps converted to Sri Lanka time; labels 00:15–00:00 treated as interval endings. 15-minute average semantics are unverified.', 'groups':groups,'plants':plants,'plant_categories':mapping,'total':[round(sum(g[i] for g in groups.values()),4) for i in range(96)]}
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('--date',action='append',required=True);args=ap.parse_args(); errors=[]; report=[]
+    ap=argparse.ArgumentParser();ap.add_argument('--date',action='append',required=True);ap.add_argument('--stop-on-source-error',action='store_true');args=ap.parse_args(); errors=[]; report=[]
     try:meta_raw,meta=get(BASE+'/api/metadata/power-plants');mr=store(meta_raw,'metadata')
-    except Exception as e:print('Metadata fetch failed:',e);sys.exit(1)
+    except Exception as e:
+        message='Metadata fetch failed: '+str(e);(ROOT/'archive/api-last-run.json').write_text(json.dumps({'checked_utc':dt.datetime.now(dt.timezone.utc).isoformat(),'accepted':[],'errors':[{'date':'*','reason':message}]},indent=2),encoding='utf-8');print(message);sys.exit(1)
     for date in dict.fromkeys(args.date):
         try:
             day=dt.date.fromisoformat(date);start=dt.datetime.combine(day,dt.time(),TZ)
@@ -68,7 +69,10 @@ def main():
                 if old!=d:raise ValueError('Date already archived with different content; raw revision preserved for review')
             else:out.write_text(json.dumps(d,separators=(',',':')),encoding='utf-8')
             report.append({'date':date,'observations':len(records),'plants':len(d['plants']),'raw':rr[0]})
-        except Exception as e:errors.append({'date':date,'reason':str(e)})
+        except Exception as e:
+            errors.append({'date':date,'reason':str(e)})
+            if args.stop_on_source_error and isinstance(e,(urllib.error.URLError,TimeoutError,ConnectionError,json.JSONDecodeError)):
+                print('Source error; stopping further requests.',flush=True);break
     dates=sorted(x.stem for x in (ROOT/'data/days').glob('????-??-??.json'))
     (ROOT/'data/index.json').write_text(json.dumps({'dates':dates},indent=2),encoding='utf-8')
     (ROOT/'archive/api-last-run.json').write_text(json.dumps({'checked_utc':dt.datetime.now(dt.timezone.utc).isoformat(),'accepted':report,'errors':errors},indent=2),encoding='utf-8')

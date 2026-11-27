@@ -11,6 +11,12 @@
     else throw new Error('Unknown period');
     const result=[];for(let t=start;t<end;t+=step)result.push(new Date(t).toISOString().slice(0,10));return result;
   }
+  function yearCoverage(dates,today){
+    const end=dateMs(today)-step,start=end-364*step;
+    const first=new Date(start).toISOString().slice(0,10),last=new Date(end).toISOString().slice(0,10);
+    const valid=[...new Set(dates)].filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&d>=first&&d<=last).sort();
+    return {start:first,end:last,available:valid.length,total:365,latest:dates.filter(d=>d<=today).sort().at(-1)||null};
+  }
   function mean(values){return values.length ? values.reduce((a,b)=>a+b,0)/values.length : null}
   function dailyValue(day,selection,name){if(!day)return null;let v=selection==='total'?day.total:(selection==='groups'||selection==='group')?day.groups?.[name]:day.plants?.[name];return Array.isArray(v)&&v.length===96&&v.every(Number.isFinite)?mean(v):null}
   function periodSeries(dates,days,selection,names){const result={};for(const name of names)result[name]=dates.map(d=>dailyValue(days[d],selection,name));return result}
@@ -44,5 +50,5 @@
   }
   const sourceColors={'Major hydro':'#0876bd','Coal':'#c59a00','Oil (CEB)':'#c93535','Oil (IPP)':'#9247a9','Wind':'#218a4b','Solar':'#ec7a1b','Biomass':'#515966','Mini hydro':'#00a2b4','Storage (net)':'#ad5785','Reported net total':'#183f36'};
   function sourceColor(name){return sourceColors[name]||'#4b6477'}
-  const api={periodDates,dailyValue,periodSeries,intervalLabels,intervalSeries,zoomRange,selectionRange,dragRange,summarize,sourceColor};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.SLGIAnalysis=api;
+  const api={periodDates,yearCoverage,dailyValue,periodSeries,intervalLabels,intervalSeries,zoomRange,selectionRange,dragRange,summarize,sourceColor};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.SLGIAnalysis=api;
 })(typeof globalThis==='undefined'?this:globalThis);

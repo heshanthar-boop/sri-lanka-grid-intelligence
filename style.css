@@ -21,3 +21,5 @@
 .chart.zoomed{cursor:grab;user-select:none}.chart.dragging{cursor:grabbing}
 
 .drag-help{color:#527365;font-size:12px;margin:14px 0 0}.chart{user-select:none}.chart.dragging{cursor:grabbing}
+
+.history-summary{background:#e8f3e5;border:1px solid #d5e6d4;border-radius:8px;padding:10px 12px;color:#315c49!important;font-weight:700}.calendar-title{display:flex;flex-direction:column;align-items:center;gap:5px}.calendar-title label{font-size:9px;color:#688174;font-weight:700;text-transform:uppercase;letter-spacing:.08em}.calendar-title input{border:1px solid #d6e4d8;border-radius:6px;padding:6px;color:#254b3e;background:white;font:inherit;font-size:12px}
