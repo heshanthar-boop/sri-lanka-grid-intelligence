@@ -22,6 +22,17 @@ function sourceCategory(name){
 }
 function color(name){let base=SLGIAnalysis.sourceColor(sourceCategory(name)||name);if(!name.startsWith('Plant: '))return base;let hash=0;for(const c of name)hash=((hash*31)+c.charCodeAt(0))>>>0;let mix=[-.3,-.15,0,.14,.26][hash%5],rgb=[1,3,5].map(i=>parseInt(base.slice(i,i+2),16));return '#'+rgb.map(v=>Math.round(mix<0?v*(1+mix):v+(255-v)*mix).toString(16).padStart(2,'0')).join('')}
 let zoom=null,chartModel=null,activePoint=null,dragState=null;
+let chartInspect=null,chartPreview=null,touchFrame=0;
+const touchChart=SLGIGestures.attach($('chart'),{
+  view:()=>chartModel&&zoom,
+  bounds:()=>{const svg=$('chart').querySelector('svg');if(!svg)return null;const rect=svg.getBoundingClientRect(),width=svg.viewBox.baseVal.width,left=width<600?42:62;return {left:rect.left+left*rect.width/width,width:(width-left-16)*rect.width/width}},
+  inspect:x=>chartInspect?.({clientX:x}),
+  preview:range=>chartPreview?.(range),
+  change:(range,fraction)=>{if(!chartModel||!zoom)return;zoom={...range,total:zoom.total};activePoint=zoom.start+Math.round(fraction*(zoom.length-1));if(!touchFrame)touchFrame=requestAnimationFrame(()=>{touchFrame=0;if(chartModel)lineChart(chartModel.series,chartModel.labels,chartModel.heading,chartModel.description)})}
+});
+function cancelTouch(){touchChart.cancel();if(touchFrame)cancelAnimationFrame(touchFrame);touchFrame=0;chartInspect=null;chartPreview=null}
+const compactPhone=window.matchMedia('(max-width: 750px)').matches;
+if(compactPhone){$('calendar-panel').open=false;$('custom-panel').open=false}
 let customSelection=new Set(),customInitialized=false;
 function renderChecklist(){if(!current)return;let node=$('series-checklist');node.replaceChildren();
   let selectedGroups=[...customSelection].filter(k=>k.startsWith('g:')).map(k=>k.slice(2)),selectedPlants=[...customSelection].filter(k=>k.startsWith('p:')).map(k=>k.slice(2));
@@ -29,6 +40,7 @@ function renderChecklist(){if(!current)return;let node=$('series-checklist');nod
   function populate(target,names,prefix,available){let grid=el('div','','check-grid');names.forEach(name=>{let key=prefix+name,label=el('label','','check-item'),input=document.createElement('input');input.type='checkbox';input.value=key;input.checked=customSelection.has(key);input.addEventListener('change',()=>{if(input.checked)customSelection.add(key);else customSelection.delete(key);$('series').value='custom';draw()});let dot=el('i','');dot.className='check-dot';dot.style.background=color(prefix==='p:'?'Plant: '+name:name);label.append(input,dot,el('span',name+(available[name]?'':' · not in selected day')));grid.append(label)});target.append(grid)}
   let groupField=document.createElement('fieldset');groupField.className='check-group';groupField.append(el('legend','SOURCES AND TOTAL'));populate(groupField,['Reported net total'],'t:',{'Reported net total':true});populate(groupField,groups,'g:',current.groups);node.append(groupField);
   let plantsBlock=document.createElement('details');plantsBlock.className='plant-list';plantsBlock.append(el('summary','Choose individual plants and reported aggregates'));populate(plantsBlock,plants,'p:',current.plants);node.append(plantsBlock);
+  $('selection-count').textContent=customSelection.size+' selected';
 }
 $('all-sources').addEventListener('click',()=>{if(!current)return;Object.keys(current.groups).forEach(k=>customSelection.add('g:'+k));$('series').value='custom';renderChecklist();draw()});
 $('clear-series').addEventListener('click',()=>{customSelection.clear();renderChecklist();draw()});
@@ -41,21 +53,23 @@ function lineChart(series,labels,heading,description){
   node.classList.toggle('zoomed',n<count);
   if(activePoint===null||activePoint<first||activePoint>last)activePoint=Math.floor((first+last)/2);
   const values=names.flatMap(k=>series[k].slice(first,last+1)).filter(Number.isFinite);
-  const W=Math.min(950,Math.max(300,node.clientWidth)),H=W<600?230:320,L=W<600?42:62,R=16,T=22,B=38;
+  const W=Math.min(950,Math.max(220,node.clientWidth)),H=W<600?300:320,L=W<600?42:62,R=16,T=22,B=38;
   const min=values.reduce((a,b)=>Math.min(a,b),0),max=values.reduce((a,b)=>Math.max(a,b),1),x=i=>L+(W-L-R)*(n===1?0:(i-first)/(n-1)),y=v=>T+(max-v)/(max-min)*(H-T-B);
   const NS='http://www.w3.org/2000/svg',svg=document.createElementNS(NS,'svg');svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('aria-hidden','true');
   const add=(tag,attrs,text)=>{let el=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v));if(text!=null)el.textContent=text;svg.appendChild(el);return el};
-  for(let t=0;t<=4;t++){let py=T+(H-T-B)*t/4;add('line',{x1:L,y1:py,x2:W-R,y2:py,stroke:'#e5eee7'});add('text',{x:L-10,y:py+4,'text-anchor':'end',fill:'#789085','font-size':W<600?10:12},fmt(max-(max-min)*t/4))}
+  for(let t=0;t<=4;t++){let py=T+(H-T-B)*t/4;add('line',{x1:L,y1:py,x2:W-R,y2:py,stroke:'#e5eee7'});add('text',{x:L-10,y:py+4,'text-anchor':'end',fill:'#789085','font-size':12},fmt(max-(max-min)*t/4))}
   add('text',{x:4,y:14,fill:'#789085','font-size':11,'font-weight':'bold'},'MW');
   let ticks=[...new Set([first,first+Math.floor((n-1)/4),first+Math.floor((n-1)/2),first+Math.floor(3*(n-1)/4),last])];
   const labelFor=i=>period==='day'?(i===95?'24:00':timestamp(i)):(n>96?labels[i].slice(5,10):labels[i].slice(5,16));
-  ticks.forEach(i=>add('text',{x:x(i),y:H-11,'text-anchor':i===first?'start':i===last?'end':'middle',fill:'#6a8276','font-size':W<600?10:12},labelFor(i)));
+  if(W<400)ticks=period!=='day'&&n<=96?[first,last]:[...new Set([first,first+Math.floor((n-1)/2),last])];
+  ticks.forEach(i=>add('text',{x:x(i),y:H-11,'text-anchor':i===first?'start':i===last?'end':'middle',fill:'#6a8276','font-size':12},labelFor(i)));
   names.forEach(name=>{let segment=[];const flush=()=>{if(segment.length>1)add('polyline',{points:segment.join(' '),fill:'none',stroke:color(name),'stroke-width':2.6,'stroke-linecap':'round','stroke-linejoin':'round'});segment=[]};for(let i=first;i<=last;i++){let v=series[name][i];if(!Number.isFinite(v)){flush();continue}segment.push(`${x(i)},${y(v)}`);if(n<=96)add('circle',{cx:x(i),cy:y(v),r:3,fill:color(name)})}flush()});
   const band=add('rect',{x:L,y:T,width:0,height:H-T-B,fill:'#2a8e6c','fill-opacity':'0.15',stroke:'#2a8e6c','stroke-width':1,opacity:0});
   const guide=add('line',{x1:L,y1:T,x2:L,y2:H-B,stroke:'#173f38','stroke-width':1,'stroke-dasharray':'4 4',opacity:0});
   const dots=names.map(name=>add('circle',{cx:0,cy:0,r:4.5,fill:color(name),stroke:'white','stroke-width':2,opacity:0}));
   node.appendChild(svg);$('download-csv').disabled=false;$('export-chart').disabled=false;$('legend').replaceChildren(...names.map(name=>{let item=el('span',name);let dot=document.createElement('i');dot.style.background=color(name);item.prepend(dot);return item}));
   $('zoom-label').textContent=zoom.length===count?'Full view':`${labelFor(first)} – ${labelFor(last)} · ${n} points`;
+  node.dataset.viewStart=first;node.dataset.viewLength=n;
   $('zoom-in').disabled=n<=Math.min(4,count);$('zoom-out').disabled=n===count;$('zoom-reset').disabled=n===count;$('pan-left').disabled=first===0;$('pan-right').disabled=last===count-1;
   function inspect(i){activePoint=Math.max(first,Math.min(last,i));let present=names.filter(k=>Number.isFinite(series[k][activePoint]));let label=period==='day'?(activePoint===95?'24:00 (end of selected day)':timestamp(activePoint)):labels[activePoint]+(activePoint%96===95?' (end of reporting day)':'');
     guide.setAttribute('x1',x(activePoint));guide.setAttribute('x2',x(activePoint));guide.setAttribute('opacity','0.8');
@@ -65,7 +79,10 @@ function lineChart(series,labels,heading,description){
     let grid=el('div','','detail-values');names.forEach(name=>{let value=series[name][activePoint],item=el('div','','detail-item'),dot=el('i','');dot.style.background=color(name);item.append(dot,el('span',name),el('strong',Number.isFinite(value)?fmt(value)+' MW':'No data'));grid.append(item)});detail.append(grid);
   }
   function pointer(e){let rect=svg.getBoundingClientRect();let px=(e.clientX-rect.left)*W/rect.width;inspect(first+Math.round((px-L)/(W-L-R)*(n-1)))}
+  chartInspect=pointer;
+  chartPreview=range=>{if(!range){band.setAttribute('opacity','0');return}const a=x(range.start),b=x(range.end);band.setAttribute('x',Math.min(a,b));band.setAttribute('width',Math.abs(b-a));band.setAttribute('opacity','1')};
   node.onpointermove=e=>{
+    if(e.pointerType==='touch')return;
     if(dragState&&e.pointerId===dragState.id){
       const delta=e.clientX-dragState.originX;
       if(Math.abs(delta)<4&&!dragState.moved)return;
@@ -86,6 +103,7 @@ function lineChart(series,labels,heading,description){
     if(e.pointerType==='mouse'||e.buttons)pointer(e);
   };
   node.onpointerdown=e=>{
+    if(e.pointerType==='touch')return;
     pointer(e);node.focus({preventScroll:true});
     if(e.pointerType==='mouse'&&e.button===0){
       let bounds=svg.getBoundingClientRect(),scale=bounds.width/W;
@@ -105,7 +123,7 @@ function lineChart(series,labels,heading,description){
   };
   node.onpointerup=finishDrag;node.onpointercancel=finishDrag;node.onlostpointercapture=()=>{dragState=null;node.classList.remove('dragging')};
   node.onkeydown=e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();inspect(activePoint+(e.key==='ArrowRight'?1:-1))}else if(e.key==='Home'||e.key==='End'){e.preventDefault();inspect(e.key==='Home'?first:last)}};
-  node.setAttribute('aria-label',`${heading}. ${description} Use left and right arrow keys to inspect values.`);inspect(activePoint);
+  node.setAttribute('aria-label',`${heading}. ${description} Pinch to zoom. Drag a range in full view, or drag to pan when zoomed. Tap or use left and right arrow keys to inspect values.`);inspect(activePoint);
 }
 function adjustZoom(action){if(!chartModel||!zoom)return;let v=SLGIAnalysis.zoomRange(zoom.total,zoom.start,zoom.length,action,activePoint);zoom={...v,total:zoom.total};lineChart(chartModel.series,chartModel.labels,chartModel.heading,chartModel.description)}
 [['zoom-in','in'],['zoom-out','out'],['zoom-reset','reset'],['pan-left','left'],['pan-right','right']].forEach(([id,action])=>$(id).addEventListener('click',()=>adjustZoom(action)));
@@ -131,8 +149,8 @@ $('chart').addEventListener('wheel',event=>{
 
 async function fetchDay(date){if(dayCache.has(date))return dayCache.get(date);if(dayRequests.has(date))return dayRequests.get(date);let request=(async()=>{let r=await fetch(`data/days/${encodeURIComponent(date)}.json`);if(!r.ok)throw Error(`Could not load ${date}`);let result=await r.json();dayCache.set(date,result);return result})();dayRequests.set(date,request);try{return await request}finally{dayRequests.delete(date)}}
 async function draw(){
-  if(!current)return;chartModel=null;$('download-csv').disabled=true;$('export-chart').disabled=true;const request=++drawVersion,sel=$('series').value,kind=sel==='groups'?'groups':sel==='total'?'total':sel==='custom'?'custom':sel.startsWith('group:')?'group':'plant';
-  $('custom-panel').hidden=false;
+  if(!current)return;cancelTouch();chartModel=null;$('download-csv').disabled=true;$('export-chart').disabled=true;const request=++drawVersion,sel=$('series').value,kind=sel==='groups'?'groups':sel==='total'?'total':sel==='custom'?'custom':sel.startsWith('group:')?'group':'plant';
+  $('custom-panel').hidden=false;$('selection-count').textContent=customSelection.size+' selected';
   if(kind==='custom'&&!customInitialized){customSelection=new Set(Object.keys(current.groups).map(k=>'g:'+k));customInitialized=true;renderChecklist()}
   const selected=kind==='custom'?[...customSelection].map(key=>({kind:key.startsWith('g:')?'group':key.startsWith('t:')?'total':'plant',name:key.slice(2),label:key.startsWith('t:')?'Reported net total':(key.startsWith('g:')?'Source: ':'Plant: ')+key.slice(2)})):[];
   let names=kind==='groups'?Object.keys(current.groups):kind==='total'?['Reported net total']:kind==='custom'?selected.map(x=>x.label):[sel.slice(6)];
@@ -205,10 +223,10 @@ let solar=d.groups.Solar;if(solar){let mid=solar.slice(39,64);let peak=Math.max(
 let events=[];Object.entries(d.plants).forEach(([name,arr])=>{for(let i=1;i<arr.length;i++){let drop=arr[i-1]-arr[i];if(drop>=100&&arr[i-1]>0&&drop/arr[i-1]>=.3)events.push({name,time:timestamp(i),drop})}});events.sort((a,b)=>b.drop-a.drop);$('events').replaceChildren();if(!events.length)$('events').append(el('p','No changes met this screening rule. This does not establish that no events occurred.','fine'));else events.slice(0,5).forEach(e=>{let row=el('div','','event');row.append(el('b',e.name),el('span',`${e.time} · −${fmt(e.drop)} MW`));$('events').append(row)});if(events.length>5)$('events').append(el('p',`${events.length} flags in total; largest five shown.`,'fine'));
 $('provenance').replaceChildren();$('provenance').append(document.createTextNode(d.imported?'Local CSV supplied by you. No source independently verified.':`PUCSL · ${d.sheet} · SHA-256 ${d.sha256.slice(0,12)}… `));if(!d.imported){let a=el('a','View source ↗');a.href=d.source_url;a.target='_blank';a.rel='noopener';$('provenance').append(a)} }
 document.querySelectorAll('[data-period]').forEach(button=>button.addEventListener('click',()=>{period=button.dataset.period;$('calendar-mode').value=period;zoom=null;activePoint=null;dragState=null;document.querySelectorAll('[data-period]').forEach(b=>{let active=b===button;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active))});if(current)renderInsights();draw()}));
-let resizeTimer;window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(draw,150)});
+let resizeTimer,lastChartWidth=$('chart').clientWidth;window.addEventListener('resize',()=>{const width=$('chart').clientWidth;if(width===lastChartWidth)return;lastChartWidth=width;clearTimeout(resizeTimer);resizeTimer=setTimeout(draw,150)});
 $('series').addEventListener('change',draw);$('date').addEventListener('change',async e=>{let ticket=++navVersion;if(e.target.value==='local'){show(imported);return}try{let day=await fetchDay(e.target.value);if(ticket===navVersion)show(day)}catch(err){if(ticket===navVersion){$('state').textContent='Could not load date';$('status-detail').textContent=err.message}}});
 function csvRows(text){let rows=[],row=[],s='',q=false;for(let i=0;i<text.length;i++){let c=text[i];if(q){if(c==='"'&&text[i+1]==='"'){s+='"';i++}else if(c==='"')q=false;else s+=c}else if(c==='"'){if(s)throw Error('Invalid quote');q=true}else if(c===','){row.push(s);s=''}else if(c==='\n'){row.push(s.replace(/\r$/,''));rows.push(row);row=[];s=''}else s+=c}if(q)throw Error('Unclosed quote');if(s||row.length){row.push(s.replace(/\r$/,''));rows.push(row)}return rows.filter(r=>r.some(x=>x.trim()))}
 function importCSV(text){let rows=csvRows(text.replace(/^\uFEFF/,''));let header=rows.shift().map(x=>x.trim().toLowerCase());let ix=['timestamp','source','category','mw'].map(k=>header.indexOf(k));if(ix.some(i=>i<0))throw Error('CSV must contain timestamp, source, category, mw headers.');let plants={},category={},allDates=[];for(let r of rows){let [t,name,g,v]=ix.map(i=>(r[i]??'').trim());if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::00)?(?:\+05:30)?$/.test(t)||!name||!g||v===''||!Number.isFinite(Number(v)))throw Error('Invalid row: use a local ISO timestamp, source, category and numeric MW.');let clean=t.replace(/\+05:30$/,'');let ms=Date.parse(clean+'Z');if(!Number.isFinite(ms)||new Date(ms).toISOString().slice(0,16)!==clean.slice(0,16)||ms%900000!==0)throw Error('Invalid quarter-hour timestamp.');if(category[name]&&category[name]!==g)throw Error('A source has more than one category.');category[name]=g;plants[name]??={};if(ms in plants[name])throw Error('Duplicate source and timestamp.');plants[name][ms]=Number(v);allDates.push(ms)}if(!allDates.length)throw Error('No observations.');let first=Math.min(...allDates),base=first-900000;if(new Date(base).toISOString().slice(11,16)!=='00:00')throw Error('First label must be 00:15 on the selected day.');let expected=Array.from({length:96},(_,i)=>base+(i+1)*900000),groups={};Object.keys(plants).forEach(name=>{if(Object.keys(plants[name]).length!==96||expected.some(t=>!(t in plants[name])))throw Error(`Source ${name} must have exactly 96 aligned observations.`);plants[name]=expected.map(t=>plants[name][t]);let g=category[name];groups[g]??=Array(96).fill(0);groups[g]=groups[g].map((v,i)=>v+plants[name][i])});return {date:new Date(base).toISOString().slice(0,10),sheet:'Local CSV',imported:true,groups,plants,plant_categories:category,total:Array.from({length:96},(_,i)=>Object.values(groups).reduce((s,a)=>s+a[i],0))}}
 $('csv').addEventListener('change',async e=>{try{let f=e.target.files[0];if(!f)return;if(f.size>10_000_000)throw Error('CSV exceeds 10 MB.');imported=importCSV(await f.text());let option=$('date').querySelector('option[value="local"]');if(!option){option=new Option('Imported CSV','local');$('date').append(option)}option.textContent=imported.date+' · local CSV';$('date').value='local';show(imported);$('import-status').textContent='Imported successfully. This data remains in this session.'}catch(err){$('import-status').textContent='Import failed: '+err.message}finally{e.target.value=''}});
 (async()=>{try{let r=await fetch('data/index.json',{cache:'no-store'});if(!r.ok)throw Error('Archive index unavailable');let data=await r.json();if(!data.dates.length)throw Error('No validated dates in archive');archiveDates=[...new Set(data.dates)].sort();[...new Set(archiveDates.map(d=>d.slice(0,7)))].reverse().forEach(m=>{let label=new Intl.DateTimeFormat('en-LK',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(m+'-01T00:00:00Z'));$('archive-month').add(new Option(label,m))});let parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Colombo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),get=k=>parts.find(p=>p.type===k).value,today=get('year')+'-'+get('month')+'-'+get('day'),coverage=SLGIAnalysis.yearCoverage(archiveDates,today);$('history-summary').textContent=`Past 365 days: ${coverage.available} of ${coverage.total} days available through ${coverage.end}. Latest saved day: ${coverage.latest||'none'}. Updates run daily when available.`;data.dates.slice().reverse().forEach(d=>$('date').add(new Option(d,d)));$('date').dispatchEvent(new Event('change'))}catch(err){$('state').textContent='No archive available';$('status-detail').textContent=err.message}})();
-if('serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js?v=10').catch(()=>{});
+if('serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js?v=11').catch(()=>{});

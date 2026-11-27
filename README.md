@@ -10,6 +10,8 @@ Choose a month with saved data in the archive bar to jump straight to that month
 
 The Sri Lanka calendar marks published public and bank holidays from the original government gazettes for 2025 and 2026. Holidays can change; later gazette amendments and special declarations are not automatically included. Other years are clearly marked as not loaded. The calendar starts on Monday, like the government desk calendar; Saturdays and Sundays are shown as bank weekends for the loaded years. Dots show days with accepted data. Choose Day, Week or Month in the calendar, then select a date. If a day has no data, the app says so; for a week or month, it uses an available date in that same period when possible. Previous/next arrows skip unavailable archive days.
 
+On a phone, pinch with two fingers to zoom around the point between your fingers. In full view, drag with one finger to select a time range; once zoomed, drag to move earlier or later. Tap to inspect MW values. Touch gestures are captured only inside the chart; swipe outside it to scroll the page. Use Reset to restore the full period. The calendar, source selection and downloads fold away to leave more space on small screens.
+
 Scroll the mouse wheel over the chart to zoom at the pointer (or use + and -), drag across the full chart to select and zoom into a range, then drag left or right to move through the zoomed view (or use the left/right arrows), and Reset to see the full period. “Save chart as PDF” downloads the visible zoomed chart. “Export data to Excel” downloads an .xlsx workbook containing all points in the selected period and selected series (regardless of zoom), plus a source and methodology sheet; missing values stay blank. PDF uses simple Latin font rendering, so non-Latin imported series labels may appear as question marks.
 
 Colours follow the broad conventions shown in [PUCSL generation reports](https://www.pucsl.gov.lk/wp-content/uploads/2024/07/Generation-Report-16.-07.2024-second-Copy-Copy.pdf): blue major hydro, yellow coal, red CEB oil, purple IPP oil, green wind, cyan mini hydro and orange solar. Storage uses a separate colour. See the chart legend for names.
@@ -36,7 +38,7 @@ python -m http.server 8000
 # Visit http://localhost:8000/
 python -m unittest discover -s tests -v
 node --check app.js
-node --test tests/test_charts.js tests/test_exports.js
+node --test tests/test_charts.js tests/test_exports.js tests/test_gestures.js
 ```
 
 Do not open `index.html` directly with `file://`: browsers restrict data loading and service workers. No external chart library, API credential or build process is required for the app.

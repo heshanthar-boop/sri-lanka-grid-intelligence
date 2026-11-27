@@ -29,3 +29,106 @@
 .touch-help{display:none;font-size:12px;color:#6c847a}.touch-help span{color:#81a951;font-size:18px;margin-right:5px}
 @media(pointer:coarse){.chart-help{display:none}.touch-help{display:block}.zoom-bar button,.date-nav button{min-height:44px;min-width:44px}.calendar-grid button{min-height:44px}select,.calendar-title input{font-size:16px}}
 @media(max-width:400px){.check-grid{grid-template-columns:minmax(0,1fr)}.check-item{min-width:0;align-items:flex-start}.check-item span{min-width:0;overflow-wrap:anywhere}.check-item input{margin-top:2px}.metrics strong{font-size:clamp(21px,6vw,26px)}.insights-grid{grid-template-columns:minmax(0,1fr)}.period-switch button{padding-left:8px;padding-right:8px}.calendar-widget,.calendar-intro{padding:18px}.chart-card,.panel{padding:16px}}
+
+/* Keep the chart in reach and let fingers manipulate only its plot. */
+body{font-size:16px}
+main,.section,.chart-card,.date-control,.date-nav{min-width:0}
+#grid-chart{scroll-margin-top:18px}
+.chart{touch-action:none;-webkit-user-select:none;overscroll-behavior-x:contain}
+.chart svg{pointer-events:none}
+.calendar-panel>summary,.custom-panel>summary,.chart-exports>summary{cursor:pointer;font-size:16px;font-weight:700;min-height:44px;padding:12px 0;color:#254f40}
+.calendar-panel>summary span,.custom-panel>summary span{font-size:14px;font-weight:500;color:#587466;margin-left:10px}
+.calendar-panel>summary{padding:16px 20px;background:#fff;border:1px solid var(--line);border-radius:12px}
+.calendar-panel[open]>summary{margin-bottom:12px}
+.custom-panel{padding:0 16px}
+.custom-panel>summary{padding:14px 0}
+.source-options{padding:0 0 16px}
+.chart-exports{border-top:1px solid var(--line);margin-top:18px}
+.chart-exports>div{display:flex;flex-wrap:wrap;gap:10px;padding:8px 0}
+.chart-exports button{font:inherit;font-size:14px;min-height:44px;padding:10px 14px;border:1px solid #ccdcd0;border-radius:8px;background:white;color:#254f40;cursor:pointer}
+.chart-exports button:disabled{opacity:.4;cursor:not-allowed}
+.check-item{min-height:44px;font-size:14px}
+.check-item input{width:20px;height:20px}
+.check-group legend,.plant-list summary,.custom-header p,.drag-help,.period-status,.legend{font-size:14px}
+.detail-item,.detail-item strong{font-size:14px}
+.detail-heading span,.zoom-bar .zoom-label{font-size:13px}
+.chart:focus-visible{outline-offset:2px}
+@media(max-width:750px){
+  .top{height:58px;padding:0 16px}
+  .topnote{display:none}
+  .brand small{font-size:9px}
+  .hero{padding:24px 20px;min-height:0;display:block}
+  .hero h1{font-size:32px;line-height:1.1;max-width:24ch}
+  .hero h1 br{display:none}
+  .hero h1 br:after{content:' '}
+  .hero .eyebrow{font-size:11px;margin-bottom:12px;letter-spacing:.08em}
+  .intro{font-size:14px;line-height:1.6;margin:14px 0 18px}
+  .hero-actions .ghost{display:none}
+  .hero-actions .button{font-size:15px;min-height:44px;padding:12px 18px}
+  .statusbar{padding:16px;gap:16px}
+  .statusbar b{font-size:15px}
+  .statusbar small{font-size:13px;line-height:1.5;margin-left:0}
+  .date-control{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:8px 12px;width:100%}
+  .date-control label{font-size:11px;letter-spacing:.05em}
+  .date-control label[for=archive-month]{grid-column:1;grid-row:1}
+  .date-control #archive-month{grid-column:1;grid-row:2;min-width:0!important;width:100%}
+  .date-control label[for=date]{grid-column:2;grid-row:1}
+  .date-nav{grid-column:2;grid-row:2;gap:4px}
+  .date-nav select{flex:1;width:100%;min-width:0!important;padding:10px 3px;font-size:16px}
+  .date-nav button{min-width:32px;min-height:46px}
+  .date-tip{grid-column:1/-1;font-size:12px!important}
+  select,.calendar-title input{font-size:16px;min-height:44px}
+  .section{padding:28px 12px 0}
+  .calendar-section{padding-top:16px}
+  .calendar-panel>summary{padding:12px 14px}
+  .calendar-panel>summary span{display:block;margin:4px 0 0 17px;font-size:13px}
+  .overview-section{display:flex;flex-direction:column;gap:18px}
+  .overview-section>.section-head{order:0;margin-bottom:0;padding:0 4px}
+  .overview-section>.chart-card{order:1;margin-top:0}
+  .overview-section>.metrics{order:2}
+  .overview-section>.insights{order:3;margin-top:0}
+  .overview-section>.columns{order:4;margin-top:0}
+  .overview-section>.section-head .eyebrow{display:none}
+  .section-head h2{font-size:30px}
+  .section-head p:not(.eyebrow){font-size:14px;line-height:1.6}
+  .chart-card{padding:16px 12px;border-radius:14px}
+  .chart-toolbar{margin-bottom:18px;padding-bottom:16px;gap:12px}
+  .toolbar-label{font-size:12px;margin-bottom:8px}
+  .period-switch button{font-size:16px;min-height:46px;padding:10px}
+  .chart-help{display:none}
+  .touch-help{display:block;font-size:14px;line-height:1.5}
+  .card-head .eyebrow{font-size:12px;margin-bottom:8px}
+  .card-head h3{font-size:26px}
+  .card-head p:not(.eyebrow){font-size:14px;line-height:1.6}
+  .custom-panel{margin:14px 0;padding:0 12px}
+  .custom-panel>summary{font-size:15px}
+  .custom-panel>summary span{font-size:13px;margin-left:5px}
+  .custom-header button{font-size:14px;min-height:44px}
+  .check-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 10px}
+  .check-item{min-width:0;align-items:center;gap:6px;font-size:14px}
+  .check-item span{overflow-wrap:anywhere}
+  .plant-list .check-grid{max-height:320px}
+  .period-status{margin-top:12px;font-size:14px;padding:10px}
+  .zoom-bar{gap:6px;margin-top:14px}
+  .zoom-bar>span:first-child{display:none}
+  .zoom-bar button{min-height:46px;min-width:44px;font-size:20px;flex:1}
+  .zoom-bar button#zoom-reset{font-size:14px;flex:1.5;padding:0 12px}
+  .zoom-bar .zoom-separator{display:none}
+  .zoom-bar .zoom-label{font-size:13px;line-height:1.5;flex-basis:100%}
+  .drag-help{font-size:13px;line-height:1.6;margin:12px 0 0}
+  .chart{margin-top:12px}
+  .chart-detail{padding:12px;min-height:0}
+  .detail-heading b{font-size:16px}
+  .detail-values{grid-template-columns:1fr;gap:12px}
+  .detail-item,.detail-item strong{font-size:14px}
+  .legend{font-size:13px;gap:10px 14px;line-height:1.5}
+  .metrics small{font-size:11px;line-height:1.6;letter-spacing:.04em}
+  .metrics span{font-size:13px;line-height:1.5}
+  .fine{font-size:13px!important;line-height:1.7}
+  .insight small{font-size:12px;line-height:1.5}
+  .insight span{font-size:13px}
+  .insights-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .panel>p:not(.eyebrow),.panel ul,.calendar-intro>p:not(.eyebrow):not(.fine){font-size:14px}
+}
+@media(max-width:360px){.date-control{grid-template-columns:minmax(0,1fr)}.date-control label[for=date]{grid-column:1;grid-row:3}.date-nav{grid-column:1;grid-row:4}.date-tip{grid-row:5}.check-grid{grid-template-columns:1fr}.hero h1{font-size:29px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
