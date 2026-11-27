@@ -1,0 +1,83 @@
+{
+  "checked_utc": "2026-11-27T14:46:08.655390+00:00",
+  "reports": [
+    {
+      "source": "https://www.pucsl.gov.lk/wp-content/uploads/2025/03/15-Minutes-Report-Mar-2025-_web-upload-2.xlsx",
+      "sha256": "b3cb5ff89234e57c23009f64406d4e70568143eb4e07c296bc5982c84e7001d0",
+      "accepted_dates": [
+        "2025-03-18"
+      ],
+      "issues": [
+        {
+          "sheet": "01-03-2025",
+          "reason": "sheet date 2025-03-01 differs from or lacks printed date 2025-03-18"
+        },
+        {
+          "sheet": "02-03-2025",
+          "reason": "sheet date 2025-03-02 differs from or lacks printed date 2025-03-18"
+        },
+        {
+          "sheet": "03-03-2025",
+          "reason": "sheet date 2025-03-03 differs from or lacks printed date 2025-03-18"
+        },
+        {
+          "sheet": "04-03-2025",
+          "reason": "sheet date 2025-03-04 differs from or lacks printed date 2025-03-18"
+        },
+        {
+          "sheet": "05-03-2025",
+          "reason": "sheet date 2025-03-05 differs from or lacks printed date 2025-03-18"
+        },
+        {
+          "sheet": "06-03-2025",
+          "reason": "sheet date 2025-03-06 differs from or lacks printed date 2025-03-18"
+        },
+        {
+          "sheet": "07-03-2025",
+          "reason": "sheet date 2025-03-07 differs from or lacks printed date 2025-03-18"
+        },
+        {
+          "sheet": "08-03-2025",
+          "reason": "sheet date 2025-03-08 differs from or lacks printed date 2025-03-18"
+        },
+        {
+          "sheet": "09-03-2025",
+          "reason": "sheet date 2025-03-09 differs from or lacks printed date 2025-03-18"
+        },
+        {
+          "sheet": "10-03-2025 ",
+          "reason": "sheet date 2025-03-10 differs from or lacks printed date 2025-03-18"
+        },
+        {
+          "sheet": "11-03-2025 ",
+          "reason": "sheet date 2025-03-11 differs from or lacks printed date 2025-03-18"
+        },
+        {
+          "sheet": "12-03-2025 ",
+          "reason": "sheet date 2025-03-12 differs from or lacks printed date 2025-03-18"
+        },
+        {
+          "sheet": "13-03-2025",
+          "reason": "sheet date 2025-03-13 differs from or lacks printed date 2025-03-18"
+        },
+        {
+          "sheet": "14-03-2025 ",
+          "reason": "sheet date 2025-03-14 differs from or lacks printed date 2025-03-18"
+        },
+        {
+          "sheet": "15-03-2025",
+          "reason": "sheet date 2025-03-15 differs from or lacks printed date 2025-03-18"
+        },
+        {
+          "sheet": "16-03-2025",
+          "reason": "sheet date 2025-03-16 differs from or lacks printed date 2025-03-18"
+        },
+        {
+          "sheet": "17-03-2025",
+          "reason": "sheet date 2025-03-17 differs from or lacks printed date 2025-03-18"
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,23 @@
+{
+  "checked_utc": "2026-11-27T14:53:24.714313+00:00",
+  "accepted": [
+    {
+      "date": "2026-11-24",
+      "observations": 3744,
+      "plants": 39,
+      "raw": "2026-11-24-a7989d2833281142bf7aee224893b01c36dc3210431add7a3286049aafffef57.json.gz"
+    },
+    {
+      "date": "2026-11-23",
+      "observations": 3744,
+      "plants": 39,
+      "raw": "2026-11-23-2ca29e90a2a53155a4cf7ac27283636d355e2115f3399ec02eb863c0fa97a5ef.json.gz"
+    }
+  ],
+  "errors": [
+    {
+      "date": "2026-11-26",
+      "reason": "Invalid dispatch value"
+    }
+  ]
+}
