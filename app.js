@@ -21,7 +21,7 @@ function sourceCategory(name){
   return null;
 }
 function color(name){let base=SLGIAnalysis.sourceColor(sourceCategory(name)||name);if(!name.startsWith('Plant: '))return base;let hash=0;for(const c of name)hash=((hash*31)+c.charCodeAt(0))>>>0;let mix=[-.3,-.15,0,.14,.26][hash%5],rgb=[1,3,5].map(i=>parseInt(base.slice(i,i+2),16));return '#'+rgb.map(v=>Math.round(mix<0?v*(1+mix):v+(255-v)*mix).toString(16).padStart(2,'0')).join('')}
-let zoom=null,chartModel=null,activePoint=null;
+let zoom=null,chartModel=null,activePoint=null,dragState=null;
 let customSelection=new Set(),customInitialized=false;
 function renderChecklist(){if(!current)return;let node=$('series-checklist');node.replaceChildren();
   let selectedGroups=[...customSelection].filter(k=>k.startsWith('g:')).map(k=>k.slice(2)),selectedPlants=[...customSelection].filter(k=>k.startsWith('p:')).map(k=>k.slice(2));
@@ -38,6 +38,7 @@ function lineChart(series,labels,heading,description){
   const names=Object.keys(series),count=labels.length;
   if(!zoom||zoom.total!==count){zoom={start:0,length:count,total:count};activePoint=period==='day'?47:Math.max(0,labels.findIndex(label=>label===current.date+' 12:00'))}
   const first=zoom.start,last=first+zoom.length-1,n=zoom.length;
+  node.classList.toggle('zoomed',n<count);
   if(activePoint===null||activePoint<first||activePoint>last)activePoint=Math.floor((first+last)/2);
   const values=names.flatMap(k=>series[k].slice(first,last+1)).filter(Number.isFinite);
   const W=Math.min(950,Math.max(300,node.clientWidth)),H=W<600?230:320,L=W<600?42:62,R=16,T=22,B=38;
@@ -63,7 +64,31 @@ function lineChart(series,labels,heading,description){
     let grid=el('div','','detail-values');names.forEach(name=>{let value=series[name][activePoint],item=el('div','','detail-item'),dot=el('i','');dot.style.background=color(name);item.append(dot,el('span',name),el('strong',Number.isFinite(value)?fmt(value)+' MW':'No data'));grid.append(item)});detail.append(grid);
   }
   function pointer(e){let rect=svg.getBoundingClientRect();let px=(e.clientX-rect.left)*W/rect.width;inspect(first+Math.round((px-L)/(W-L-R)*(n-1)))}
-  node.onpointermove=e=>{if(e.pointerType==='mouse'||e.buttons)pointer(e)};node.onpointerdown=e=>{pointer(e);node.focus({preventScroll:true})};
+  node.onpointermove=e=>{
+    if(dragState&&e.pointerId===dragState.id){
+      const delta=e.clientX-dragState.originX;
+      if(Math.abs(delta)<4&&!dragState.moved)return;
+      dragState.moved=true;node.classList.add('dragging');
+      const start=SLGIAnalysis.dragRange(zoom.total,dragState.start,dragState.length,delta,dragState.plotWidth);
+      if(start!==zoom.start){
+        const fraction=Math.max(0,Math.min(1,(e.clientX-dragState.plotLeft)/dragState.plotWidth));
+        zoom={start,length:dragState.length,total:zoom.total};activePoint=start+Math.round(fraction*(zoom.length-1));
+        lineChart(chartModel.series,chartModel.labels,chartModel.heading,chartModel.description);
+      }
+      return;
+    }
+    if(e.pointerType==='mouse'||e.buttons)pointer(e);
+  };
+  node.onpointerdown=e=>{
+    pointer(e);node.focus({preventScroll:true});
+    if(e.pointerType==='mouse'&&e.button===0&&zoom.length<zoom.total){
+      let bounds=svg.getBoundingClientRect(),scale=bounds.width/W;
+      dragState={id:e.pointerId,originX:e.clientX,start:zoom.start,length:zoom.length,plotLeft:bounds.left+L*scale,plotWidth:(W-L-R)*scale,moved:false};
+      node.setPointerCapture(e.pointerId);e.preventDefault();
+    }
+  };
+  const finishDrag=e=>{if(dragState&&e.pointerId===dragState.id){dragState=null;node.classList.remove('dragging');if(node.hasPointerCapture(e.pointerId))node.releasePointerCapture(e.pointerId)}};
+  node.onpointerup=finishDrag;node.onpointercancel=finishDrag;node.onlostpointercapture=()=>{dragState=null;node.classList.remove('dragging')};
   node.onkeydown=e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();inspect(activePoint+(e.key==='ArrowRight'?1:-1))}else if(e.key==='Home'||e.key==='End'){e.preventDefault();inspect(e.key==='Home'?first:last)}};
   node.setAttribute('aria-label',`${heading}. ${description} Use left and right arrow keys to inspect values.`);inspect(activePoint);
 }
@@ -145,12 +170,12 @@ $('download-csv').addEventListener('click',()=>{if(!chartModel||!current)return;
 });
 $('export-chart').addEventListener('click',()=>{if(!chartModel||!current||!zoom)return;let names=Object.keys(chartModel.series),info={date:current.date,period,title:$('chart-title').textContent,colors:names.map(color),source:current.imported?'User-imported CSV (not independently verified)':'PUCSL public dispatch records; source coverage can vary by date'};let bytes=SLGIExports.chartPdf(chartModel,info,zoom),url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'})),a=document.createElement('a');a.href=url;a.download=`SLGI-chart-${period}-${current.date}.pdf`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
 
-function show(d){zoom=null;activePoint=null;current=d;$('calendar-message').textContent=pendingCalendarMessage||('Selected '+d.date+(SLGIHolidays.data[d.date]?' · '+SLGIHolidays.data[d.date]:''));pendingCalendarMessage='';calendarMonth=Date.UTC(Number(d.date.slice(0,4)),Number(d.date.slice(5,7))-1,1);renderCalendar();updateDayNav();renderInsights(d);$('state').textContent=d.imported?'Local CSV · session only':'Archived PUCSL records';$('status-detail').textContent=`${d.date} · ${d.imported?'user supplied':d.sheet} · not live`;const total=d.total;let hydro=d.groups['Major hydro'];let day=[],night=[];if(hydro)hydro.forEach((v,i)=>{let end=(i+1)*15;((end>360&&end<=1080)?day:night).push(v)});let avd=avg(day),avn=avg(night);$('peak').textContent=fmt(Math.max(...total))+' MW';$('dayhydro').textContent=hydro?fmt(avd)+' MW':'—';$('nighthydro').textContent=hydro?fmt(avn)+' MW':'—';$('day2').textContent=hydro?fmt(avd)+' MW':'Not available';$('night2').textContent=hydro?fmt(avn)+' MW':'Not available';let hmax=Math.max(avd||0,avn||0,1);$('daybar').style.width=(hydro?Math.max(0,avd/hmax*100):0)+'%';$('nightbar').style.width=(hydro?Math.max(0,avn/hmax*100):0)+'%';$('coverage').textContent='96 / 96';
+function show(d){zoom=null;activePoint=null;dragState=null;current=d;$('calendar-message').textContent=pendingCalendarMessage||('Selected '+d.date+(SLGIHolidays.data[d.date]?' · '+SLGIHolidays.data[d.date]:''));pendingCalendarMessage='';calendarMonth=Date.UTC(Number(d.date.slice(0,4)),Number(d.date.slice(5,7))-1,1);renderCalendar();updateDayNav();renderInsights(d);$('state').textContent=d.imported?'Local CSV · session only':'Archived PUCSL records';$('status-detail').textContent=`${d.date} · ${d.imported?'user supplied':d.sheet} · not live`;const total=d.total;let hydro=d.groups['Major hydro'];let day=[],night=[];if(hydro)hydro.forEach((v,i)=>{let end=(i+1)*15;((end>360&&end<=1080)?day:night).push(v)});let avd=avg(day),avn=avg(night);$('peak').textContent=fmt(Math.max(...total))+' MW';$('dayhydro').textContent=hydro?fmt(avd)+' MW':'—';$('nighthydro').textContent=hydro?fmt(avn)+' MW':'—';$('day2').textContent=hydro?fmt(avd)+' MW':'Not available';$('night2').textContent=hydro?fmt(avn)+' MW':'Not available';let hmax=Math.max(avd||0,avn||0,1);$('daybar').style.width=(hydro?Math.max(0,avd/hmax*100):0)+'%';$('nightbar').style.width=(hydro?Math.max(0,avn/hmax*100):0)+'%';$('coverage').textContent='96 / 96';
 let select=$('series');select.value='custom';if(!customInitialized){customSelection=new Set(Object.keys(d.groups).map(k=>'g:'+k));customInitialized=true}renderChecklist();draw();let sum=total.reduce((a,b)=>a+b,0);$('mix').replaceChildren();Object.entries(d.groups).sort((a,b)=>b[1].reduce((x,y)=>x+y,0)-a[1].reduce((x,y)=>x+y,0)).forEach(([name,arr],i)=>{let s=arr.reduce((a,b)=>a+b,0);let pct=sum?100*s/sum:NaN;let row=el('div','','mix-row');row.append(el('span',name),el('b',Number.isFinite(pct)?fmt(pct)+'%':'—'));let bar=el('div','','track'),fill=el('i','');fill.style.width=Math.max(0,Math.min(100,pct||0))+'%';fill.style.background=color(name);bar.append(fill);row.append(bar);$('mix').append(row)});
 let solar=d.groups.Solar;if(solar){let mid=solar.slice(39,64);let peak=Math.max(...mid),low=Math.min(...mid);$('solar').textContent=`Between 10:00 and 16:00, reported solar ranged from ${fmt(low)} to ${fmt(peak)} MW. This is a dispatch observation, not a curtailment estimate.`}else $('solar').textContent='Solar observations are not available in this dataset.';
 let events=[];Object.entries(d.plants).forEach(([name,arr])=>{for(let i=1;i<arr.length;i++){let drop=arr[i-1]-arr[i];if(drop>=100&&arr[i-1]>0&&drop/arr[i-1]>=.3)events.push({name,time:timestamp(i),drop})}});events.sort((a,b)=>b.drop-a.drop);$('events').replaceChildren();if(!events.length)$('events').append(el('p','No changes met this screening rule. This does not establish that no events occurred.','fine'));else events.slice(0,5).forEach(e=>{let row=el('div','','event');row.append(el('b',e.name),el('span',`${e.time} · −${fmt(e.drop)} MW`));$('events').append(row)});if(events.length>5)$('events').append(el('p',`${events.length} flags in total; largest five shown.`,'fine'));
 $('provenance').replaceChildren();$('provenance').append(document.createTextNode(d.imported?'Local CSV supplied by you. No source independently verified.':`PUCSL · ${d.sheet} · SHA-256 ${d.sha256.slice(0,12)}… `));if(!d.imported){let a=el('a','View source ↗');a.href=d.source_url;a.target='_blank';a.rel='noopener';$('provenance').append(a)} }
-document.querySelectorAll('[data-period]').forEach(button=>button.addEventListener('click',()=>{period=button.dataset.period;$('calendar-mode').value=period;zoom=null;activePoint=null;document.querySelectorAll('[data-period]').forEach(b=>{let active=b===button;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active))});draw()}));
+document.querySelectorAll('[data-period]').forEach(button=>button.addEventListener('click',()=>{period=button.dataset.period;$('calendar-mode').value=period;zoom=null;activePoint=null;dragState=null;document.querySelectorAll('[data-period]').forEach(b=>{let active=b===button;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active))});draw()}));
 let resizeTimer;window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(draw,150)});
 $('series').addEventListener('change',draw);$('date').addEventListener('change',async e=>{let ticket=++navVersion;if(e.target.value==='local'){show(imported);return}try{let day=await fetchDay(e.target.value);if(ticket===navVersion)show(day)}catch(err){if(ticket===navVersion){$('state').textContent='Could not load date';$('status-detail').textContent=err.message}}});
 function csvRows(text){let rows=[],row=[],s='',q=false;for(let i=0;i<text.length;i++){let c=text[i];if(q){if(c==='"'&&text[i+1]==='"'){s+='"';i++}else if(c==='"')q=false;else s+=c}else if(c==='"'){if(s)throw Error('Invalid quote');q=true}else if(c===','){row.push(s);s=''}else if(c==='\n'){row.push(s.replace(/\r$/,''));rows.push(row);row=[];s=''}else s+=c}if(q)throw Error('Unclosed quote');if(s||row.length){row.push(s.replace(/\r$/,''));rows.push(row)}return rows.filter(r=>r.some(x=>x.trim()))}
