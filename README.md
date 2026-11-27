@@ -6,6 +6,8 @@ Independent, static, Android-friendly explorer for PUCSL public dispatch observa
 
 After the GitHub Pages deployment succeeds, open its HTTPS address in Android Chrome and use **Install app** or **Add to Home screen** if offered. The application shell and previously visited dates are cached for offline use; dates not previously visited are not guaranteed to be available offline. Updates are network-first. Service workers require HTTPS or localhost. No login is needed for the app.
 
+Use the Day / Week / Month buttons above the chart. Week means Monday–Sunday; Month means the calendar month containing the selected date. In week and month views, each point is the arithmetic mean of that day’s 96 reported MW readings. Missing days and unavailable series are gaps, never zero. The availability count is shown above the chart. Choose a source or plant, then hover, tap, or focus the chart and use left/right arrow keys to inspect values. The summary cards and investigation panels continue to describe the selected day. Different days may have different source coverage.
+
 The included dates are genuine verified source records, not demonstration data. Select a date and then choose source groups, the net total, or a reported plant/aggregate. A source series can be an aggregate (for example, solar, wind or mini hydro), even when shown in the plant selector. The status line says **not live**.
 
 ## Deploy on GitHub Pages
@@ -28,6 +30,7 @@ python -m http.server 8000
 # Visit http://localhost:8000/
 python -m unittest discover -s tests -v
 node --check app.js
+node --test tests/test_charts.js
 ```
 
 Do not open `index.html` directly with `file://`: browsers restrict data loading and service workers. No external chart library, API credential or build process is required for the app.
