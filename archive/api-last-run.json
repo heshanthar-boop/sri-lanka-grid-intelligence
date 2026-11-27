@@ -1,17 +1,23 @@
 {
-  "checked_utc": "2026-11-27T14:53:24.714313+00:00",
+  "checked_utc": "2026-11-27T14:57:33.200793+00:00",
   "accepted": [
     {
-      "date": "2026-11-24",
+      "date": "2026-11-22",
       "observations": 3744,
       "plants": 39,
-      "raw": "2026-11-24-a7989d2833281142bf7aee224893b01c36dc3210431add7a3286049aafffef57.json.gz"
+      "raw": "2026-11-22-45d0108103f7a0aeccd0afd4ed0f2b0ed100d1bf048a064d1041dee39442e013.json.gz"
     },
     {
-      "date": "2026-11-23",
+      "date": "2026-11-21",
       "observations": 3744,
       "plants": 39,
-      "raw": "2026-11-23-2ca29e90a2a53155a4cf7ac27283636d355e2115f3399ec02eb863c0fa97a5ef.json.gz"
+      "raw": "2026-11-21-d13ae09747ab4bb9317beab76729b19555ba89801ccd1f509bfe69805d38f7c4.json.gz"
+    },
+    {
+      "date": "2026-11-20",
+      "observations": 3744,
+      "plants": 39,
+      "raw": "2026-11-20-8d39c11d77a3e91b9ce82d74e137108d2aeedf83c980bbffa4693b17ea0fe0a7.json.gz"
     }
   ],
   "errors": [
