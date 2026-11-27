@@ -14,6 +14,8 @@
   function mean(values){return values.length ? values.reduce((a,b)=>a+b,0)/values.length : null}
   function dailyValue(day,selection,name){if(!day)return null;let v=selection==='total'?day.total:(selection==='groups'||selection==='group')?day.groups?.[name]:day.plants?.[name];return Array.isArray(v)&&v.length===96&&v.every(Number.isFinite)?mean(v):null}
   function periodSeries(dates,days,selection,names){const result={};for(const name of names)result[name]=dates.map(d=>dailyValue(days[d],selection,name));return result}
+  function intervalLabels(dates){let result=[];for(const date of dates){let base=dateMs(date);for(let i=1;i<=96;i++)result.push(new Date(base+i*900000).toISOString().slice(0,16).replace('T',' '))}return result}
+  function intervalSeries(dates,days,selection,names){const out={};for(const name of names){out[name]=[];for(const date of dates){let day=days[date],values=selection==='total'?day?.total:(selection==='groups'||selection==='group')?day?.groups?.[name]:day?.plants?.[name];if(!Array.isArray(values)||values.length!==96||!values.every(Number.isFinite))out[name].push(...Array(96).fill(null));else out[name].push(...values)}}return out}
   function zoomRange(total,start,length,action,anchor){
     const min=Math.min(total,4);start=Math.max(0,Math.min(start,total-1));length=Math.max(min,Math.min(length,total));anchor=Math.max(start,Math.min(anchor,start+length-1));
     if(action==='reset')return {start:0,length:total};
@@ -30,5 +32,5 @@
   }
   const sourceColors={'Major hydro':'#0876bd','Coal':'#c59a00','Oil (CEB)':'#c93535','Oil (IPP)':'#9247a9','Wind':'#218a4b','Solar':'#ec7a1b','Biomass':'#515966','Mini hydro':'#00a2b4','Storage (net)':'#ad5785','Reported net total':'#183f36'};
   function sourceColor(name){return sourceColors[name]||'#4b6477'}
-  const api={periodDates,dailyValue,periodSeries,zoomRange,summarize,sourceColor};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.SLGIAnalysis=api;
+  const api={periodDates,dailyValue,periodSeries,intervalLabels,intervalSeries,zoomRange,summarize,sourceColor};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.SLGIAnalysis=api;
 })(typeof globalThis==='undefined'?this:globalThis);

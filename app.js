@@ -8,6 +8,7 @@ let period='day',archiveDates=[],drawVersion=0;
 const dayCache=new Map();
 const CATEGORY_NAMES={'Major hydro':1,'Coal':1,'Oil (CEB)':1,'Oil (IPP)':1,'Wind':1,'Solar':1,'Biomass':1,'Mini hydro':1,'Storage (net)':1,'Reported net total':1};
 function sourceCategory(name){
+  name=name.replace(/^(Source|Plant): /,'');
   if(CATEGORY_NAMES[name])return name;
   const v=(current?.plant_categories?.[name]||name).toLowerCase();
   if(v.includes('mini hydro')||v.includes('minihydro'))return 'Mini hydro';
@@ -19,34 +20,45 @@ function sourceCategory(name){
   if(['sapu a','sapu b','uthuru janani','barge','kccp','kccps2','kps(gt7)','kps(gt)','kps_dpp_matu','kps_dpp_hamba'].includes(v))return 'Oil (CEB)';
   return null;
 }
-function color(name){return SLGIAnalysis.sourceColor(sourceCategory(name)||name)}
+function color(name){let base=SLGIAnalysis.sourceColor(sourceCategory(name)||name);if(!name.startsWith('Plant: '))return base;let hash=0;for(const c of name)hash=((hash*31)+c.charCodeAt(0))>>>0;let mix=[-.3,-.15,0,.14,.26][hash%5],rgb=[1,3,5].map(i=>parseInt(base.slice(i,i+2),16));return '#'+rgb.map(v=>Math.round(mix<0?v*(1+mix):v+(255-v)*mix).toString(16).padStart(2,'0')).join('')}
 let zoom=null,chartModel=null,activePoint=null;
+let customSelection=new Set(),customInitialized=false;
+function renderChecklist(){if(!current)return;let node=$('series-checklist');node.replaceChildren();
+  let selectedGroups=[...customSelection].filter(k=>k.startsWith('g:')).map(k=>k.slice(2)),selectedPlants=[...customSelection].filter(k=>k.startsWith('p:')).map(k=>k.slice(2));
+  let groups=[...new Set([...Object.keys(current.groups),...selectedGroups])].sort(),plants=[...new Set([...Object.keys(current.plants),...selectedPlants])].sort();
+  function populate(target,names,prefix,available){let grid=el('div','','check-grid');names.forEach(name=>{let key=prefix+name,label=el('label','','check-item'),input=document.createElement('input');input.type='checkbox';input.value=key;input.checked=customSelection.has(key);input.addEventListener('change',()=>{if(input.checked)customSelection.add(key);else customSelection.delete(key);draw()});let dot=el('i','');dot.className='check-dot';dot.style.background=color(name);label.append(input,dot,el('span',name+(available[name]?'':' · not in selected day')));grid.append(label)});target.append(grid)}
+  let groupField=document.createElement('fieldset');groupField.className='check-group';groupField.append(el('legend','SOURCES'));populate(groupField,groups,'g:',current.groups);node.append(groupField);
+  let plantsBlock=document.createElement('details');plantsBlock.className='plant-list';plantsBlock.append(el('summary','Choose individual plants and reported aggregates'));populate(plantsBlock,plants,'p:',current.plants);node.append(plantsBlock);
+}
+$('all-sources').addEventListener('click',()=>{if(!current)return;customSelection=new Set(Object.keys(current.groups).map(k=>'g:'+k));renderChecklist();draw()});
+$('clear-series').addEventListener('click',()=>{customSelection.clear();renderChecklist();draw()});
+
 function lineChart(series,labels,heading,description){
   chartModel={series,labels,heading,description};const node=$('chart');node.replaceChildren();
   const names=Object.keys(series),count=labels.length;
-  if(!zoom||zoom.total!==count){zoom={start:0,length:count,total:count};activePoint=period==='day'?47:Math.max(0,labels.indexOf(current.date))}
+  if(!zoom||zoom.total!==count){zoom={start:0,length:count,total:count};activePoint=period==='day'?47:Math.max(0,labels.findIndex(label=>label===current.date+' 12:00'))}
   const first=zoom.start,last=first+zoom.length-1,n=zoom.length;
   if(activePoint===null||activePoint<first||activePoint>last)activePoint=Math.floor((first+last)/2);
   const values=names.flatMap(k=>series[k].slice(first,last+1)).filter(Number.isFinite);
   const W=Math.min(950,Math.max(300,node.clientWidth)),H=W<600?230:320,L=W<600?42:62,R=16,T=22,B=38;
-  const min=Math.min(0,...values),max=Math.max(1,...values),x=i=>L+(W-L-R)*(n===1?0:(i-first)/(n-1)),y=v=>T+(max-v)/(max-min)*(H-T-B);
+  const min=values.reduce((a,b)=>Math.min(a,b),0),max=values.reduce((a,b)=>Math.max(a,b),1),x=i=>L+(W-L-R)*(n===1?0:(i-first)/(n-1)),y=v=>T+(max-v)/(max-min)*(H-T-B);
   const NS='http://www.w3.org/2000/svg',svg=document.createElementNS(NS,'svg');svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('aria-hidden','true');
   const add=(tag,attrs,text)=>{let el=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v));if(text!=null)el.textContent=text;svg.appendChild(el);return el};
   for(let t=0;t<=4;t++){let py=T+(H-T-B)*t/4;add('line',{x1:L,y1:py,x2:W-R,y2:py,stroke:'#e5eee7'});add('text',{x:L-10,y:py+4,'text-anchor':'end',fill:'#789085','font-size':W<600?10:12},fmt(max-(max-min)*t/4))}
   add('text',{x:4,y:14,fill:'#789085','font-size':11,'font-weight':'bold'},'MW');
   let ticks=[...new Set([first,first+Math.floor((n-1)/4),first+Math.floor((n-1)/2),first+Math.floor(3*(n-1)/4),last])];
-  const labelFor=i=>period==='day'?(i===95?'24:00':timestamp(i)):labels[i].slice(5);
+  const labelFor=i=>period==='day'?(i===95?'24:00':timestamp(i)):(n>96?labels[i].slice(5,10):labels[i].slice(5,16));
   ticks.forEach(i=>add('text',{x:x(i),y:H-11,'text-anchor':i===first?'start':i===last?'end':'middle',fill:'#6a8276','font-size':W<600?10:12},labelFor(i)));
-  names.forEach(name=>{let segment=[];const flush=()=>{if(segment.length>1)add('polyline',{points:segment.join(' '),fill:'none',stroke:color(name),'stroke-width':2.6,'stroke-linecap':'round','stroke-linejoin':'round'});segment=[]};for(let i=first;i<=last;i++){let v=series[name][i];if(!Number.isFinite(v)){flush();continue}segment.push(`${x(i)},${y(v)}`);if(period!=='day'||n<=20)add('circle',{cx:x(i),cy:y(v),r:3,fill:color(name)})}flush()});
+  names.forEach(name=>{let segment=[];const flush=()=>{if(segment.length>1)add('polyline',{points:segment.join(' '),fill:'none',stroke:color(name),'stroke-width':2.6,'stroke-linecap':'round','stroke-linejoin':'round'});segment=[]};for(let i=first;i<=last;i++){let v=series[name][i];if(!Number.isFinite(v)){flush();continue}segment.push(`${x(i)},${y(v)}`);if(n<=96)add('circle',{cx:x(i),cy:y(v),r:3,fill:color(name)})}flush()});
   const guide=add('line',{x1:L,y1:T,x2:L,y2:H-B,stroke:'#173f38','stroke-width':1,'stroke-dasharray':'4 4',opacity:0});
   const dots=names.map(name=>add('circle',{cx:0,cy:0,r:4.5,fill:color(name),stroke:'white','stroke-width':2,opacity:0}));
   node.appendChild(svg);$('download-csv').disabled=false;$('export-chart').disabled=false;$('legend').replaceChildren(...names.map(name=>{let item=el('span',name);let dot=document.createElement('i');dot.style.background=color(name);item.prepend(dot);return item}));
   $('zoom-label').textContent=zoom.length===count?'Full view':`${labelFor(first)} – ${labelFor(last)} · ${n} points`;
   $('zoom-in').disabled=n<=Math.min(4,count);$('zoom-out').disabled=n===count;$('zoom-reset').disabled=n===count;$('pan-left').disabled=first===0;$('pan-right').disabled=last===count-1;
-  function inspect(i){activePoint=Math.max(first,Math.min(last,i));let present=names.filter(k=>Number.isFinite(series[k][activePoint]));let label=period==='day'?(activePoint===95?'24:00 (end of selected day)':timestamp(activePoint)):labels[activePoint];
+  function inspect(i){activePoint=Math.max(first,Math.min(last,i));let present=names.filter(k=>Number.isFinite(series[k][activePoint]));let label=period==='day'?(activePoint===95?'24:00 (end of selected day)':timestamp(activePoint)):labels[activePoint]+(activePoint%96===95?' (end of reporting day)':'');
     guide.setAttribute('x1',x(activePoint));guide.setAttribute('x2',x(activePoint));guide.setAttribute('opacity','0.8');
     dots.forEach((dot,j)=>{let value=series[names[j]][activePoint];dot.setAttribute('opacity',Number.isFinite(value)?'1':'0');if(Number.isFinite(value)){dot.setAttribute('cx',x(activePoint));dot.setAttribute('cy',y(value))}});
-    let detail=$('chart-detail');detail.replaceChildren();let top=el('div','','detail-heading');top.append(el('b',label),el('span',period==='day'?'Reported power':'Daily average of reported readings'));detail.append(top);
+    let detail=$('chart-detail');detail.replaceChildren();let top=el('div','','detail-heading');top.append(el('b',label),el('span','15-minute reported power'));detail.append(top);
     if(!present.length){detail.append(el('p','No reported values available for this point.','detail-empty'));return}
     let grid=el('div','','detail-values');names.forEach(name=>{let value=series[name][activePoint],item=el('div','','detail-item'),dot=el('i','');dot.style.background=color(name);item.append(dot,el('span',name),el('strong',Number.isFinite(value)?fmt(value)+' MW':'No data'));grid.append(item)});detail.append(grid);
   }
@@ -60,17 +72,21 @@ function adjustZoom(action){if(!chartModel||!zoom)return;let v=SLGIAnalysis.zoom
 
 async function fetchDay(date){if(dayCache.has(date))return dayCache.get(date);let r=await fetch(`data/days/${encodeURIComponent(date)}.json`);if(!r.ok)throw Error(`Could not load ${date}`);let result=await r.json();dayCache.set(date,result);return result}
 async function draw(){
-  if(!current)return;chartModel=null;$('download-csv').disabled=true;$('export-chart').disabled=true;const request=++drawVersion,sel=$('series').value,kind=sel==='groups'?'groups':sel==='total'?'total':sel.startsWith('group:')?'group':'plant';
-  let names=kind==='groups'?Object.keys(current.groups):kind==='total'?['Reported net total']:[sel.slice(6)];
+  if(!current)return;chartModel=null;$('download-csv').disabled=true;$('export-chart').disabled=true;const request=++drawVersion,sel=$('series').value,kind=sel==='groups'?'groups':sel==='total'?'total':sel==='custom'?'custom':sel.startsWith('group:')?'group':'plant';
+  $('custom-panel').hidden=kind!=='custom';
+  if(kind==='custom'&&!customInitialized){customSelection=new Set(Object.keys(current.groups).map(k=>'g:'+k));customInitialized=true;renderChecklist()}
+  const selected=kind==='custom'?[...customSelection].map(key=>({kind:key.startsWith('g:')?'group':'plant',name:key.slice(2),label:(key.startsWith('g:')?'Source: ':'Plant: ')+key.slice(2)})):[];
+  let names=kind==='groups'?Object.keys(current.groups):kind==='total'?['Reported net total']:kind==='custom'?selected.map(x=>x.label):[sel.slice(6)];
+  if(kind==='custom'&&!names.length){$('chart').replaceChildren(el('p','Choose at least one source or plant above.','chart-empty'));$('chart-detail').replaceChildren();$('legend').replaceChildren();$('period-status').textContent='No series selected';['zoom-in','zoom-out','zoom-reset','pan-left','pan-right'].forEach(id=>$(id).disabled=true);return;}
   if(period==='day'){
     $('chart-title').textContent='Generation through the day';$('chart-subtitle').textContent='15-minute reported readings for the selected date.';
     $('period-status').textContent=current.date+' · Day view · 96 observations per reported series';$('chart-note').textContent='MW measures power. These are reported readings, not confirmed interval averages. The last point is midnight at the end of the selected day.';
-    let series=kind==='groups'?current.groups:kind==='total'?{'Reported net total':current.total}:{[names[0]]:kind==='group'?current.groups[names[0]]:current.plants[names[0]]};
+    let series=kind==='groups'?current.groups:kind==='total'?{'Reported net total':current.total}:kind==='custom'?Object.fromEntries(selected.map(item=>[item.label,(item.kind==='group'?current.groups[item.name]:current.plants[item.name])||Array(96).fill(null)])):{[names[0]]:kind==='group'?current.groups[names[0]]:current.plants[names[0]]};
     lineChart(series,Array.from({length:96},(_,i)=>timestamp(i)), 'Daily dispatch chart','15-minute readings in MW.');return;
   }
   let dates=SLGIAnalysis.periodDates(current.date,period);let dayMap={},failed=[];
   $('chart-title').textContent=period==='week'?'A week at a glance':'A month at a glance';
-  $('chart-subtitle').textContent='Each point is the average of that day’s reported readings.';
+  $('chart-subtitle').textContent='Every point is a 15-minute reported reading. Zoom in to inspect individual times.';
   $('period-status').textContent='Loading available days…';
   let targets=current.imported?[]:dates.filter(d=>archiveDates.includes(d));
   await Promise.all(targets.map(async d=>{try{dayMap[d]=await fetchDay(d)}catch(e){failed.push(d)}}));
@@ -78,9 +94,9 @@ async function draw(){
   if(current.imported)dayMap[current.date]=current;
   const count=Object.keys(dayMap).length;
   $('period-status').textContent=`${dates[0]} to ${dates[dates.length-1]} · ${count} of ${dates.length} days available${failed.length?' · '+failed.length+' could not be loaded':''}${current.imported?' · local CSV only':''}`;
-  $('chart-note').textContent='Gaps mean no accepted data; missing values are never treated as zero. Each point averages that day’s 96 readings, not verified MWh. Source coverage can change between days.';
-  const series=SLGIAnalysis.periodSeries(dates,dayMap,kind,names);
-  lineChart(series,dates,period==='week'?'Weekly dispatch chart':'Monthly dispatch chart',`${count} of ${dates.length} days available. Daily average reported power in MW.`);
+  $('chart-note').textContent='Each point is a 15-minute reading in MW. Gaps mean data is missing, not zero. Midnight belongs to the end of the reporting day. Source coverage can change.';
+  const series=kind==='custom'?Object.fromEntries(selected.map(item=>[item.label,SLGIAnalysis.intervalSeries(dates,dayMap,item.kind,[item.name])[item.name]])):SLGIAnalysis.intervalSeries(dates,dayMap,kind,names),labels=SLGIAnalysis.intervalLabels(dates);
+  lineChart(series,labels,period==='week'?'Weekly dispatch chart':'Monthly dispatch chart',`${count} of ${dates.length} days available. 15-minute reported power in MW.`);
 }
 
 let calendarMonth=null,navVersion=0,pendingCalendarMessage='';
@@ -114,7 +130,7 @@ $('download-csv').addEventListener('click',()=>{if(!chartModel||!current)return;
 $('export-chart').addEventListener('click',()=>{if(!chartModel||!current||!zoom)return;let names=Object.keys(chartModel.series),info={date:current.date,period,title:$('chart-title').textContent,colors:names.map(color),source:current.imported?'User-imported CSV (not independently verified)':'PUCSL public dispatch records; source coverage can vary by date'};let bytes=SLGIExports.chartPdf(chartModel,info,zoom),url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'})),a=document.createElement('a');a.href=url;a.download=`SLGI-chart-${period}-${current.date}.pdf`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
 
 function show(d){zoom=null;activePoint=null;current=d;$('calendar-message').textContent=pendingCalendarMessage||('Selected '+d.date+(SLGIHolidays.data[d.date]?' · '+SLGIHolidays.data[d.date]:''));pendingCalendarMessage='';calendarMonth=Date.UTC(Number(d.date.slice(0,4)),Number(d.date.slice(5,7))-1,1);renderCalendar();updateDayNav();renderInsights(d);$('state').textContent=d.imported?'Local CSV · session only':'Archived PUCSL records';$('status-detail').textContent=`${d.date} · ${d.imported?'user supplied':d.sheet} · not live`;const total=d.total;let hydro=d.groups['Major hydro'];let day=[],night=[];if(hydro)hydro.forEach((v,i)=>{let end=(i+1)*15;((end>360&&end<=1080)?day:night).push(v)});let avd=avg(day),avn=avg(night);$('peak').textContent=fmt(Math.max(...total))+' MW';$('dayhydro').textContent=hydro?fmt(avd)+' MW':'—';$('nighthydro').textContent=hydro?fmt(avn)+' MW':'—';$('day2').textContent=hydro?fmt(avd)+' MW':'Not available';$('night2').textContent=hydro?fmt(avn)+' MW':'Not available';let hmax=Math.max(avd||0,avn||0,1);$('daybar').style.width=(hydro?Math.max(0,avd/hmax*100):0)+'%';$('nightbar').style.width=(hydro?Math.max(0,avn/hmax*100):0)+'%';$('coverage').textContent='96 / 96';
-let select=$('series'),old=select.value;select.replaceChildren(new Option('All source groups','groups'),new Option('Reported net total','total'));Object.keys(d.groups).sort().forEach(k=>select.add(new Option('Source: '+k,'group:'+k)));Object.keys(d.plants).sort().forEach(k=>select.add(new Option('Plant: '+k,'plant:'+k)));select.value=[...select.options].some(o=>o.value===old)?old:'groups';draw();let sum=total.reduce((a,b)=>a+b,0);$('mix').replaceChildren();Object.entries(d.groups).sort((a,b)=>b[1].reduce((x,y)=>x+y,0)-a[1].reduce((x,y)=>x+y,0)).forEach(([name,arr],i)=>{let s=arr.reduce((a,b)=>a+b,0);let pct=sum?100*s/sum:NaN;let row=el('div','','mix-row');row.append(el('span',name),el('b',Number.isFinite(pct)?fmt(pct)+'%':'—'));let bar=el('div','','track'),fill=el('i','');fill.style.width=Math.max(0,Math.min(100,pct||0))+'%';fill.style.background=color(name);bar.append(fill);row.append(bar);$('mix').append(row)});
+let select=$('series'),old=select.value;select.replaceChildren(new Option('All source groups','groups'),new Option('Reported net total','total'),new Option('Choose multiple sources and plants','custom'));Object.keys(d.groups).sort().forEach(k=>select.add(new Option('Source: '+k,'group:'+k)));Object.keys(d.plants).sort().forEach(k=>select.add(new Option('Plant: '+k,'plant:'+k)));select.value=[...select.options].some(o=>o.value===old)?old:'groups';renderChecklist();draw();let sum=total.reduce((a,b)=>a+b,0);$('mix').replaceChildren();Object.entries(d.groups).sort((a,b)=>b[1].reduce((x,y)=>x+y,0)-a[1].reduce((x,y)=>x+y,0)).forEach(([name,arr],i)=>{let s=arr.reduce((a,b)=>a+b,0);let pct=sum?100*s/sum:NaN;let row=el('div','','mix-row');row.append(el('span',name),el('b',Number.isFinite(pct)?fmt(pct)+'%':'—'));let bar=el('div','','track'),fill=el('i','');fill.style.width=Math.max(0,Math.min(100,pct||0))+'%';fill.style.background=color(name);bar.append(fill);row.append(bar);$('mix').append(row)});
 let solar=d.groups.Solar;if(solar){let mid=solar.slice(39,64);let peak=Math.max(...mid),low=Math.min(...mid);$('solar').textContent=`Between 10:00 and 16:00, reported solar ranged from ${fmt(low)} to ${fmt(peak)} MW. This is a dispatch observation, not a curtailment estimate.`}else $('solar').textContent='Solar observations are not available in this dataset.';
 let events=[];Object.entries(d.plants).forEach(([name,arr])=>{for(let i=1;i<arr.length;i++){let drop=arr[i-1]-arr[i];if(drop>=100&&arr[i-1]>0&&drop/arr[i-1]>=.3)events.push({name,time:timestamp(i),drop})}});events.sort((a,b)=>b.drop-a.drop);$('events').replaceChildren();if(!events.length)$('events').append(el('p','No changes met this screening rule. This does not establish that no events occurred.','fine'));else events.slice(0,5).forEach(e=>{let row=el('div','','event');row.append(el('b',e.name),el('span',`${e.time} · −${fmt(e.drop)} MW`));$('events').append(row)});if(events.length>5)$('events').append(el('p',`${events.length} flags in total; largest five shown.`,'fine'));
 $('provenance').replaceChildren();$('provenance').append(document.createTextNode(d.imported?'Local CSV supplied by you. No source independently verified.':`PUCSL · ${d.sheet} · SHA-256 ${d.sha256.slice(0,12)}… `));if(!d.imported){let a=el('a','View source ↗');a.href=d.source_url;a.target='_blank';a.rel='noopener';$('provenance').append(a)} }
