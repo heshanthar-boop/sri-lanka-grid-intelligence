@@ -28,6 +28,17 @@ The included dates are genuine verified source records, not demonstration data. 
 
 **Public visibility:** source code and files committed to a public repository, including archived raw source data, are public. The Pages artifact contains the app and normalized data, not the raw archive. Verify PUCSL/CEB reuse and redistribution terms for your intended use; no public reuse license was established in this research. A Git repository is not a guarantee of permanent preservation: make independent backups and monitor storage and retention limits.
 
+## Guided analysis workspace
+
+Open **Open analysis**, choose a source and comparison date, then **Analyze selected day**. This workspace always analyzes the selected single day, independently of the main chart's Day / Week / Month view. It runs locally without an AI service, account, secret or subscription. These are reproducible statistical calculations, not a language model or a forecast.
+
+- **What changed?** aligns 96 quarter-hour readings for two complete days. It reports differences in mean MW, the selected day's peak, the largest same-time difference, and the source groups whose means changed most. A missing or incomplete source cannot be compared; it is never assumed to be zero. Percentage changes are withheld for a zero or negative reference mean, such as some signed storage records.
+- **Anything unusual?** uses the preceding eight dates on the same weekday, requiring at least four complete source days. At each time label, the screening band is median ± max(30 MW, 3 × 1.4826 × MAD). The floor and multiplier are explicit screening choices, not calibrated detection thresholds, utility settings, forecast uncertainty or a validated statistical confidence interval. Holidays, weather and operating conditions are not controlled. Flags do not establish trips, faults or curtailment. No flags does not establish normal operation.
+- **Which hours?** shows a 7- or 28-calendar-day heatmap ending on the selected day. Each hour is the arithmetic mean of four reported readings ending within that hour; the final hour includes the reporting day's final 24:00 label. This is not a claim of measured hourly MWh. Missing days remain gaps; negative values use a separate colour.
+- **Similar daily shapes** ranks earlier complete source days loaded for this analysis using RMS-normalized root-mean-square distance. It compares shape independently of output level. A smaller distance is closer; it is not a probability or evidence of the same operating cause. All-zero profiles are excluded. The search is limited to loaded earlier days: the heatmap window, matching weekdays and any explicitly chosen comparison day, not every archive date.
+
+Reference requests run with at most four concurrent downloads and share the existing day cache. Changing the selected date or analysis settings clears the previous report; stale asynchronous results are ignored. Failed downloads and reference dates are disclosed. Imported CSV is kept out of archive comparisons. **Save analysis** exports the findings, screening method, reference dates, failures and source URLs/hashes as plain text. Source coverage and measurement conventions still require independent verification.
+
 ## Run and test locally
 
 Requires Python 3.10+ and Node only for the optional JS syntax check. From this directory:
@@ -38,7 +49,7 @@ python -m http.server 8000
 # Visit http://localhost:8000/
 python -m unittest discover -s tests -v
 node --check app.js
-node --test tests/test_charts.js tests/test_exports.js tests/test_gestures.js
+node --test tests/test_*.js
 ```
 
 Do not open `index.html` directly with `file://`: browsers restrict data loading and service workers. No external chart library, API credential or build process is required for the app.
